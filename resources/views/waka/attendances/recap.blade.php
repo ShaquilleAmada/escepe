@@ -40,7 +40,6 @@
 <div class="card mb-4">
     <div class="card-body p-3">
         <form method="GET" action="{{ route('waka.attendances.recap') }}" id="filterForm" class="row g-2 align-items-end">
-            <input type="hidden" name="status_filter" id="statusFilterInput" value="{{ $statusFilter }}">
             <div class="col-12 col-sm-6 col-md-3">
                 <label class="form-label small fw-semibold text-secondary mb-1">Tanggal</label>
                 <input type="date" name="date" class="form-control form-control-sm filter-auto-submit" value="{{ $date }}">
@@ -81,25 +80,6 @@
                 </a>
             </div>
         </form>
-
-        {{-- Filter Cepat Status Rekap: Semua | Hanya yang Belum Final | Final --}}
-        <div class="d-flex flex-wrap align-items-center gap-2 mt-3 pt-3 border-top">
-            <span class="small fw-semibold text-secondary me-2"><i class="bi bi-funnel me-1"></i>Status Rekap:</span>
-            <a href="{{ request()->fullUrlWithQuery(['status_filter' => 'all']) }}" 
-               class="btn btn-sm {{ $statusFilter === 'all' ? 'btn-dark' : 'btn-outline-secondary' }} rounded-pill px-3 py-1">
-                Semua <span class="badge {{ $statusFilter === 'all' ? 'bg-light text-dark' : 'bg-secondary' }} ms-1">{{ $totalClasses }}</span>
-            </a>
-            <a href="{{ request()->fullUrlWithQuery(['status_filter' => 'pending']) }}" 
-               class="btn btn-sm {{ $statusFilter === 'pending' ? 'btn-warning text-dark fw-bold' : 'btn-outline-warning text-dark' }} rounded-pill px-3 py-1">
-                <i class="bi bi-clock-history me-1"></i>Hanya yang Belum Final 
-                <span class="badge bg-warning text-dark ms-1">{{ $pendingClassesCount }}</span>
-            </a>
-            <a href="{{ request()->fullUrlWithQuery(['status_filter' => 'final']) }}" 
-               class="btn btn-sm {{ $statusFilter === 'final' ? 'btn-success text-white fw-bold' : 'btn-outline-success' }} rounded-pill px-3 py-1">
-                <i class="bi bi-check-circle me-1"></i>Final / Bersih 
-                <span class="badge bg-success ms-1">{{ $finalClassesCount }}</span>
-            </a>
-        </div>
     </div>
 </div>
 
@@ -129,12 +109,12 @@
                         <td class="ps-3 fw-semibold text-dark">{{ $row['class_name'] }}</td>
                         <td class="text-center">
                             @if($row['status'] === 'final')
-                                <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1" title="{{ $row['status_reason'] }}">
-                                    <i class="bi bi-check-circle-fill me-1"></i>Final / Bersih
+                                <span class="fw-semibold text-success" title="{{ $row['status_reason'] }}">
+                                    Final
                                 </span>
                             @else
-                                <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle px-2 py-1" title="{{ $row['status_reason'] }}">
-                                    <i class="bi bi-exclamation-triangle-fill me-1"></i>Belum Final
+                                <span class="fw-semibold text-danger" title="{{ $row['status_reason'] }}">
+                                    Belum Final
                                 </span>
                             @endif
                         </td>
