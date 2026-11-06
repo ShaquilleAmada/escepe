@@ -3,10 +3,7 @@
 @section('page_title', 'Verifikasi Kode OTP')
 
 @section('card_content')
-  <div class="auth-card-header">
-    <div style="display: inline-flex; align-items: center; justify-content: center; width: 54px; height: 54px; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 50%; color: #2563eb; font-size: 1.5rem; margin-bottom: 0.85rem;">
-      <i class="bi bi-shield-check"></i>
-    </div>
+  <div class="auth-card-header" style="text-align: center;">
     <h1 class="auth-card-title">Verifikasi Kode OTP</h1>
     <p class="auth-card-subtitle">
       Masukkan 6 digit kode yang dikirim ke <strong style="color: #1e293b;">{{ $email ?? session('otp_email') }}</strong>
@@ -15,12 +12,9 @@
 
   {{-- Status notifikasi pengiriman email --}}
   @if(session('status'))
-    <div style="background-color: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 12px 14px; margin-bottom: 1.25rem; display: flex; align-items: flex-start; gap: 10px;" role="alert">
-      <i class="bi bi-envelope-check-fill" style="color: #2563eb; font-size: 1.15rem; line-height: 1.3;"></i>
-      <div style="font-size: 0.82rem; color: #1e40af; line-height: 1.45;">
-        {{ session('status') }}
-      </div>
-    </div>
+    <p style="font-size: 0.84rem; color: #475569; text-align: center; margin-bottom: 1.25rem; line-height: 1.5;" role="status">
+      {{ session('status') }}
+    </p>
   @endif
 
   {{-- Mode Dev Display (hanya aktif jika RESET_OTP_MODE=display) --}}
@@ -82,23 +76,22 @@
 
   <!-- Area Kirim Ulang OTP & Ubah Email -->
   <div style="margin-top: 1.5rem; padding-top: 1.25rem; border-top: 1px solid #f1f5f9; text-align: center;">
-    <p style="font-size: 0.82rem; color: #64748b; margin-bottom: 0.75rem;">
-      Tidak menerima kode OTP di email?
-    </p>
+    <div style="display: flex; align-items: center; justify-content: center; gap: 8px; flex-wrap: wrap; margin-bottom: 0.85rem;">
+      <span style="font-size: 0.82rem; color: #64748b;">Tidak menerima kode OTP di email?</span>
+      <a href="{{ route('password.forgot') }}" style="font-size: 0.82rem; color: #2563eb; font-weight: 600; text-decoration: none; display: inline-flex; align-items: center; gap: 4px;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">
+        <i class="bi bi-pencil-square"></i>
+        <span>Ganti Email</span>
+      </a>
+    </div>
 
-    <div style="display: flex; align-items: center; justify-content: center; gap: 14px; flex-wrap: wrap;">
+    <div>
       <form action="{{ route('password.resend-otp') }}" method="POST" id="resendOtpForm" style="display: inline-block;">
         @csrf
-        <button type="submit" id="resendBtn" class="btn btn-sm btn-outline-primary" style="font-size: 0.8rem; font-weight: 600; border-radius: 8px; padding: 6px 14px; display: inline-flex; align-items: center; gap: 6px;">
+        <button type="submit" id="resendBtn" class="btn btn-sm btn-outline-primary" style="font-size: 0.8rem; font-weight: 600; border-radius: 8px; padding: 6px 16px; display: inline-flex; align-items: center; gap: 6px;">
           <i class="bi bi-arrow-repeat"></i>
           <span id="resendText">Kirim Ulang Kode OTP</span>
         </button>
       </form>
-
-      <a href="{{ route('password.forgot') }}" style="font-size: 0.8rem; color: #475569; text-decoration: none; display: inline-flex; align-items: center; gap: 4px;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">
-        <i class="bi bi-pencil-square"></i>
-        <span>Ganti Email</span>
-      </a>
     </div>
   </div>
 

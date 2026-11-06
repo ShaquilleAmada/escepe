@@ -3,10 +3,7 @@
 @section('page_title', 'Perbarui Password')
 
 @section('card_content')
-  <div class="auth-card-header">
-    <div style="display: inline-flex; align-items: center; justify-content: center; width: 54px; height: 54px; background: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 50%; color: #059669; font-size: 1.5rem; margin-bottom: 0.85rem;">
-      <i class="bi bi-key-fill"></i>
-    </div>
+  <div class="auth-card-header" style="text-align: center;">
     <h1 class="auth-card-title">Perbarui Password</h1>
     <p class="auth-card-subtitle">
       Silakan buat kata sandi baru untuk akun <strong>{{ $email ?? session('otp_email') }}</strong>
@@ -15,12 +12,9 @@
 
   {{-- Status notifikasi sukses verifikasi OTP --}}
   @if(session('status'))
-    <div style="background-color: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 8px; padding: 12px 14px; margin-bottom: 1.25rem; display: flex; align-items: flex-start; gap: 10px;" role="alert">
-      <i class="bi bi-check-circle-fill" style="color: #059669; font-size: 1.15rem; line-height: 1.3;"></i>
-      <div style="font-size: 0.82rem; color: #065f46; line-height: 1.45;">
-        {{ session('status') }}
-      </div>
-    </div>
+    <p style="font-size: 0.84rem; color: #059669; text-align: center; margin-bottom: 1.25rem; line-height: 1.5; font-weight: 500;" role="status">
+      {{ session('status') }}
+    </p>
   @endif
 
   <form action="{{ route('password.reset.post') }}" method="POST" id="resetPasswordForm" novalidate>
