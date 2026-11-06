@@ -53,9 +53,6 @@ class JournalController extends Controller
         ], 200);
     }
 
-    /**
-     * Endpoint untuk Mengambil Daftar Siswa Kelas beserta Status Izin Otomatis
-     */
     public function getStudentsForSession(Request $request, $scheduleId)
     {
         $schedule  = Schedule::with(['schoolClass', 'room'])->findOrFail($scheduleId);
