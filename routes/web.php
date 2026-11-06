@@ -98,11 +98,6 @@ Route::middleware(['auth', 'waka'])->prefix('waka')->name('waka.')->group(functi
     // Rekap Presensi Siswa
     Route::get('attendances/recap', [\App\Http\Controllers\Web\Waka\AttendanceRecapController::class, 'index'])->name('attendances.recap');
     Route::get('attendances/recap/class/{class}', [\App\Http\Controllers\Web\Waka\AttendanceRecapController::class, 'classDetail'])->name('attendances.recap.class');
-
-    // Hari Libur Sekolah
-    Route::get('holidays', [\App\Http\Controllers\Web\Waka\SchoolHolidayController::class, 'index'])->name('holidays.index');
-    Route::post('holidays', [\App\Http\Controllers\Web\Waka\SchoolHolidayController::class, 'store'])->name('holidays.store');
-    Route::delete('holidays/{id}', [\App\Http\Controllers\Web\Waka\SchoolHolidayController::class, 'destroy'])->name('holidays.destroy');
 });
 
 

@@ -8,7 +8,6 @@ use App\Models\User;
 use App\Models\Classes;
 use App\Models\Room;
 use App\Models\Schedule;
-use App\Models\SchoolHoliday;
 use App\Models\LeaveRequest;
 use App\Models\SystemConfiguration;
 use Carbon\Carbon;
@@ -169,14 +168,6 @@ class RealisticTestSeeder extends Seeder
             ]
         );
 
-        // 6. 1 Hari Libur di School Holidays
-        SchoolHoliday::firstOrCreate(
-            ['holiday_date' => '2026-11-25'],
-            [
-                'description' => 'Hari Guru Nasional & HUT PGRI',
-                'created_by'  => $waka->id,
-            ]
-        );
 
         // 7. Pengajuan Izin Beragam Status
         $today = Carbon::today()->toDateString();

@@ -507,10 +507,6 @@ body {
           <i class="bi bi-arrow-repeat"></i>
           <span>Siklus Putaran</span>
         </a>
-        <a href="{{ route('waka.holidays.index') }}" class="nav-item-link {{ request()->routeIs('waka.holidays.*') ? 'active' : '' }}">
-          <i class="bi bi-calendar-event"></i>
-          <span>Hari Libur Sekolah</span>
-        </a>
       </div>
     </div>
   </div>

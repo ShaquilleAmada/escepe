@@ -7,7 +7,6 @@ use App\Models\Journal;
 use App\Models\Attendance;
 use App\Models\LeaveRequest;
 use App\Models\Schedule;
-use App\Models\SchoolHoliday;
 use App\Models\SystemConfiguration;
 use App\Models\User;
 use Carbon\Carbon;
@@ -15,7 +14,7 @@ use Carbon\Carbon;
 class AttendanceRecapService
 {
     /**
-     * Menghitung total hari efektif (Senin s/d Jumat dikurangi hari libur di school_holidays).
+     * Menghitung total hari efektif (Senin s/d Jumat).
      */
     public static function getEffectiveDays(string $startDate, string $endDate): int
     {
@@ -26,15 +25,10 @@ class AttendanceRecapService
             return 0;
         }
 
-        $holidays = SchoolHoliday::whereBetween('holiday_date', [$startDate, $endDate])
-            ->get()
-            ->map(fn($h) => Carbon::parse($h->holiday_date)->toDateString())
-            ->toArray();
-
         $effectiveDays = 0;
         $current = $start->copy();
         while ($current->lte($end)) {
-            if ($current->isWeekday() && !in_array($current->toDateString(), $holidays)) {
+            if ($current->isWeekday()) {
                 $effectiveDays++;
             }
             $current->addDay();
@@ -70,15 +64,14 @@ class AttendanceRecapService
             ];
         }
 
-        // 2. Cek apakah hari ini adalah hari libur sekolah
-        $isHoliday = SchoolHoliday::whereDate('holiday_date', $date)->exists();
+        // 2. Cek apakah hari non-efektif KBM (akhir pekan)
         $carbonDate = Carbon::parse($date);
-        if ($isHoliday || $carbonDate->isWeekend()) {
+        if ($carbonDate->isWeekend()) {
             return [
                 'status'       => 'final',
                 'label'        => 'Final / Bersih',
                 'color'        => 'success',
-                'reason'       => 'Hari libur / non-efektif KBM.',
+                'reason'       => 'Hari non-efektif KBM (akhir pekan).',
                 'is_final'     => true,
             ];
         }

@@ -6,7 +6,6 @@ use Tests\TestCase;
 use App\Models\User;
 use App\Models\Classes;
 use App\Models\Role;
-use App\Models\SchoolHoliday;
 use App\Models\LeaveRequest;
 use App\Services\AttendanceRecapService;
 use Carbon\Carbon;
@@ -28,29 +27,14 @@ class AttendanceRecapEnhancementTest extends TestCase
         );
     }
 
-    public function test_school_holidays_reduce_effective_days(): void
+    public function test_recap_calculates_effective_weekdays(): void
     {
-        $waka = $this->getWakaUser();
-
         // Monday to Friday in a single week = 5 weekdays
         $monday = Carbon::parse('2026-11-09'); // Monday
         $friday = Carbon::parse('2026-11-13'); // Friday
 
-        // Without holidays
-        $daysWithoutHoliday = AttendanceRecapService::getEffectiveDays($monday->toDateString(), $friday->toDateString());
-        $this->assertEquals(5, $daysWithoutHoliday);
-
-        // Add 1 holiday on Wednesday
-        $wednesday = Carbon::parse('2026-11-11')->toDateString();
-        SchoolHoliday::firstOrCreate([
-            'holiday_date' => $wednesday,
-        ], [
-            'description'  => 'Hari Libur Uji Coba',
-            'created_by'   => $waka->id,
-        ]);
-
-        $daysWithHoliday = AttendanceRecapService::getEffectiveDays($monday->toDateString(), $friday->toDateString());
-        $this->assertEquals(4, $daysWithHoliday);
+        $days = AttendanceRecapService::getEffectiveDays($monday->toDateString(), $friday->toDateString());
+        $this->assertEquals(5, $days);
     }
 
     public function test_waka_recap_calculates_belum_final_when_leave_is_pending(): void
