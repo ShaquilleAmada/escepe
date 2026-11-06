@@ -31,6 +31,31 @@ Route::post('/forgot-password/verify-otp', [ForgotPasswordController::class, 've
 Route::post('/forgot-password/reset-password', [ForgotPasswordController::class, 'resetPassword'])
     ->middleware('throttle:10,1');
 
+// 2.1 Webhook Otomatisasi Deploy & Migrasi Database di Hosting (DomaiNesia)
+Route::get('/deploy-migrate-{token}', function ($token) {
+    $secret = env('DEPLOY_SECRET', 'skansaba_super_secret_token_12345');
+    if ($token !== $secret) {
+        return response()->json(['status' => 'error', 'message' => 'Unauthorized deploy token.'], 403);
+    }
+
+    \Illuminate\Support\Facades\Artisan::call('migrate', ['--force' => true]);
+    $migrateOutput = \Illuminate\Support\Facades\Artisan::output();
+
+    if (request()->has('seed')) {
+        \Illuminate\Support\Facades\Artisan::call('db:seed', ['--force' => true]);
+    }
+
+    \Illuminate\Support\Facades\Artisan::call('config:cache');
+    \Illuminate\Support\Facades\Artisan::call('route:cache');
+    \Illuminate\Support\Facades\Artisan::call('view:cache');
+
+    return response()->json([
+        'status'  => 'success',
+        'message' => 'Migration, Seed, dan Cache berhasil dieksekusi di server hosting.',
+        'output'  => $migrateOutput,
+    ]);
+});
+
 // 3. Endpoint Terproteksi (WAJIB Bearer Token Sanctum)
 Route::middleware('auth:sanctum')->group(function () {
 
