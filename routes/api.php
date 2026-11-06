@@ -45,13 +45,22 @@ Route::get('/deploy-migrate-{token}', function ($token) {
         \Illuminate\Support\Facades\Artisan::call('db:seed', ['--force' => true]);
     }
 
+    // Pastikan storage symlink terhubung untuk upload gambar & dokumen
+    if (!file_exists(public_path('storage'))) {
+        try {
+            \Illuminate\Support\Facades\Artisan::call('storage:link');
+        } catch (\Throwable $e) {
+            // Abaikan jika symlink sudah ada atau lingkungan hosting membatasi
+        }
+    }
+
     \Illuminate\Support\Facades\Artisan::call('config:cache');
     \Illuminate\Support\Facades\Artisan::call('route:cache');
     \Illuminate\Support\Facades\Artisan::call('view:cache');
 
     return response()->json([
         'status'  => 'success',
-        'message' => 'Migration, Seed, dan Cache berhasil dieksekusi di server hosting.',
+        'message' => 'Migration, Seed, Storage Link, dan Cache berhasil dieksekusi di server hosting.',
         'output'  => $migrateOutput,
     ]);
 });

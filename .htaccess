@@ -1,0 +1,36 @@
+<IfModule mod_rewrite.c>
+    <IfModule mod_negotiation.c>
+        Options -MultiViews -Indexes
+    </IfModule>
+
+    RewriteEngine On
+
+    # 1. Lindungi file konfigurasi sensitif dan direktori internal Laravel dari akses langsung
+    RewriteRule ^(\.env|\.git|composer\.(json|lock)|package(-lock)?\.json|artisan|phpunit\.xml) - [F,L,NC]
+    RewriteRule ^(app|bootstrap|config|database|resources|routes|tests|vendor)(/.*)?$ - [F,L,NC]
+    RewriteRule ^storage/(framework|logs)(/.*)?$ - [F,L,NC]
+
+    # 2. Hapus imbuhan /public dari URL jika diketik manual oleh pengunjung (redirect 301 ke domain bersih)
+    RewriteCond %{THE_REQUEST} \s/+public/([^\s?]*) [NC]
+    RewriteRule ^ /%1 [L,NE,R=301]
+
+    RewriteCond %{THE_REQUEST} \s/+public(?:\s|\?) [NC]
+    RewriteRule ^ / [L,NE,R=301]
+
+    # 3. Hapus imbuhan index.php dari URL jika diketik manual
+    RewriteCond %{THE_REQUEST} \s/+index\.php/([^\s?]*) [NC]
+    RewriteRule ^ /%1 [L,NE,R=301]
+
+    RewriteCond %{THE_REQUEST} \s/+index\.php(?:\s|\?) [NC]
+    RewriteRule ^ / [L,NE,R=301]
+
+    # 4. Arahkan seluruh request secara internal ke folder public/
+    RewriteCond %{REQUEST_URI} !^/public/
+    RewriteRule ^(.*)$ public/$1 [L]
+</IfModule>
+
+# Tentukan file index default
+DirectoryIndex public/index.php index.php
+
+# Nonaktifkan directory listing
+Options -Indexes
