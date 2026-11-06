@@ -11,21 +11,21 @@ jobs:
     name: Build & FTP Deploy
 
     steps:
-      - name: ⬇️ Checkout Repository
+      - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: 🐘 Setup PHP
+      - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
           php-version: '8.3'
           extensions: mbstring, xml, ctype, iconv, intl, pdo_mysql, bcmath, fileinfo, gd, zip, curl
           coverage: none
 
-      - name: 📦 Install Composer Dependencies
+      - name: Install Composer Dependencies
         run: |
           composer install --no-dev --prefer-dist --optimize-autoloader --no-progress --no-interaction --ignore-platform-reqs
 
-      - name: 🟢 Setup Node.js & Compile Vite Assets
+      - name: Setup Node.js & Compile Vite Assets
         uses: actions/setup-node@v4
         with:
           node-version: 20
@@ -33,7 +33,7 @@ jobs:
           npm ci || npm install
           npm run build
 
-      - name: 🚀 Sync Files via FTP to DomaiNesia
+      - name: Sync Files via FTP to DomaiNesia
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
           server: ${{ secrets.FTP_SERVER }}
@@ -46,13 +46,14 @@ jobs:
             **/.git*
             **/.git*/**
             **/node_modules/**
+            vendor/**
             tests/**
             .env
             .env.example
             *.md
             phpunit.xml
 
-      - name: ⚡ Trigger Database Migration di Hosting
+      - name: Trigger Database Migration di Hosting
         env:
           DEPLOY_SECRET: ${{ secrets.DEPLOY_SECRET }}
           APP_URL: ${{ secrets.APP_URL }}

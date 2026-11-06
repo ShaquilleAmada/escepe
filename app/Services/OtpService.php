@@ -30,17 +30,19 @@ class OtpService
      */
     public function generate(string $email): string
     {
+        $normalizedEmail = strtolower(trim($email));
+
         // Hapus OTP lama untuk email ini agar tidak ada lebih dari satu aktif
-        PasswordOtp::where('email', $email)->delete();
+        PasswordOtp::where('email', $normalizedEmail)->delete();
 
         // Buat OTP 6 digit, boleh diawali nol
         $otp = str_pad((string) random_int(0, 999999), self::OTP_LENGTH, '0', STR_PAD_LEFT);
 
         PasswordOtp::create([
-            'email'      => $email,
+            'email'      => $normalizedEmail,
             'otp_hash'   => Hash::make($otp),  // simpan hash, bukan plaintext
             'attempts'   => 0,
-            'expires_at' => now()->addMinutes(self::TTL_MINUTES),
+            'expires_at' => now()->addMinutes((int) config('otp.ttl_minutes', self::TTL_MINUTES)),
         ]);
 
         return $otp;

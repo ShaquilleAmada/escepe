@@ -33,18 +33,28 @@ Route::post('/login', [AuthController::class, 'login'])->name('login.post')->mid
 Route::match(['get', 'post'], '/logout', [AuthController::class, 'logout'])->name('logout');
 
 
-// Lupa Password (OTP-based, bisa diakses tamu maupun user yang belum login)
+// Lupa Password (Alur 3 Langkah: Email -> Verifikasi OTP -> Reset Password)
 Route::get('/forgot-password', [ForgotPasswordController::class, 'showEmailForm'])
     ->name('password.forgot');
 Route::post('/forgot-password', [ForgotPasswordController::class, 'sendOtp'])
     ->name('password.send-otp')
     ->middleware('throttle:5,1');    // maks 5 permintaan OTP per menit
 
+Route::get('/forgot-password/verify', [ForgotPasswordController::class, 'showVerifyOtpForm'])
+    ->name('password.verify.form');
+Route::post('/forgot-password/verify', [ForgotPasswordController::class, 'verifyOtp'])
+    ->name('password.verify.post')
+    ->middleware('throttle:10,1');  // maks 10 percobaan verifikasi per menit
+
+Route::post('/forgot-password/resend', [ForgotPasswordController::class, 'resendOtp'])
+    ->name('password.resend-otp')
+    ->middleware('throttle:3,1');
+
 Route::get('/reset-password', [ForgotPasswordController::class, 'showResetForm'])
     ->name('password.reset.form');
 Route::post('/reset-password', [ForgotPasswordController::class, 'resetPassword'])
     ->name('password.reset.post')
-    ->middleware('throttle:10,1');  // maks 10 percobaan verifikasi per menit
+    ->middleware('throttle:10,1');
 
 // Area Khusus Waka Kurikulum / Admin (Terkunci Ketat Role ID 1)
 Route::middleware(['auth', 'waka'])->prefix('waka')->name('waka.')->group(function () {

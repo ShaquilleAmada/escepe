@@ -42,9 +42,7 @@
                     <span style="display: block; font-size: 12px; font-weight: 600; text-transform: uppercase; color: #1d4ed8; letter-spacing: 0.08em; margin-bottom: 8px;">
                       Kode Verifikasi Sekali Pakai (OTP)
                     </span>
-                    <span style="display: inline-block; font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace; font-size: 36px; font-weight: 800; letter-spacing: 10px; color: #1e3a8a; line-height: 1.1; margin-left: 10px;">
-                      {{ $otp }}
-                    </span>
+                    <span style="display: inline-block; font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace; font-size: 36px; font-weight: 800; letter-spacing: 8px; color: #1e3a8a; line-height: 1.1; user-select: all;">{{ trim($otp) }}</span>
                     <span style="display: block; font-size: 12px; color: #3b82f6; margin-top: 8px;">
                       Berlaku selama {{ $validMinutes ?? 10 }} menit
                     </span>

@@ -8,7 +8,7 @@
     <p class="auth-card-subtitle">Masukkan email akun Anda yang terdaftar untuk menerima kode verifikasi OTP</p>
   </div>
 
-  <form action="{{ route('password.send-otp') }}" method="POST" novalidate>
+  <form action="{{ route('password.send-otp') }}" method="POST" id="forgotForm" novalidate>
     @csrf
 
     <!-- Email Input -->
@@ -38,7 +38,7 @@
     </div>
 
     <!-- Submit Button -->
-    <button type="submit" class="btn-login">
+    <button type="submit" class="btn-login" id="btnSubmitForgot">
       <span>Kirim Kode Verifikasi</span>
       <i class="bi bi-arrow-right"></i>
     </button>
@@ -51,4 +51,19 @@
       Kembali ke halaman login
     </a>
   </div>
+@endsection
+
+@section('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  const form = document.getElementById('forgotForm');
+  const btn = document.getElementById('btnSubmitForgot');
+  if (form && btn) {
+    form.addEventListener('submit', function () {
+      btn.disabled = true;
+      btn.innerHTML = '<span>Mengirim Kode OTP...</span> <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>';
+    });
+  }
+});
+</script>
 @endsection
