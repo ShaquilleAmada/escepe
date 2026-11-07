@@ -89,3 +89,4 @@ return new class extends Migration
         // Data dummy tidak perlu dikembalikan saat rollback
     }
 };
+
