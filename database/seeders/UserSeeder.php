@@ -144,59 +144,5 @@ class UserSeeder extends Seeder
                 'fullname' => 'RYAWIDYANINGTYAS, S.Pd.',
             ]
         );
-
-        // 5. Akun Sample Tambahan untuk Pengujian / Demonstrasi
-        User::updateOrCreate(
-            ['username' => 'guru1'],
-            [
-                'role_id' => 2,
-                'password' => Hash::make('password123'),
-                'fullname' => 'Guru Pengajar (Sample)',
-            ]
-        );
-
-        User::updateOrCreate(
-            ['username' => 'gurubk'],
-            [
-                'role_id' => 5,
-                'password' => Hash::make('password123'),
-                'fullname' => 'Guru BK (Sample)',
-            ]
-        );
-
-        // 6. Akun Siswa (Role ID 3)
-        $siswa = User::updateOrCreate(
-            ['username' => 'siswa01'],
-            [
-                'role_id' => 3,
-                'class_id' => 1, // XII RPL 1
-                'password' => Hash::make('password123'),
-                'fullname' => 'Siswa Teladan',
-                'nip_nisn' => '5412',
-            ]
-        );
-
-        // 7. Akun Orang Tua Terpisah (Role ID 4) - Login menggunakan 'P' + NIS Siswa
-        $ortu = User::updateOrCreate(
-            ['username' => 'P5412'],
-            [
-                'role_id' => 4,
-                'parent_id' => $siswa->id,
-                'class_id' => 1,
-                'password' => Hash::make('password123'),
-                'fullname' => 'Bapak/Ibu Siswa Teladan',
-            ]
-        );
-        $siswa->update(['parent_id' => $ortu->id]);
-
-        // 8. Akun Wali Kelas (Role ID 6 - Tim Kesiswaan)
-        User::updateOrCreate(
-            ['username' => 'wali_kelas'],
-            [
-                'role_id' => 6,
-                'password' => Hash::make('password123'),
-                'fullname' => 'Wali Kelas XII RPL',
-            ]
-        );
     }
 }
