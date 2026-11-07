@@ -33,36 +33,43 @@ Route::post('/forgot-password/reset-password', [ForgotPasswordController::class,
 
 // 2.1 Webhook Otomatisasi Deploy & Migrasi Database di Hosting (DomaiNesia)
 Route::get('/deploy-migrate-{token}', function ($token) {
-    $secret = env('DEPLOY_SECRET', 'skansaba_super_secret_token_12345');
-    if ($token !== $secret) {
-        return response()->json(['status' => 'error', 'message' => 'Unauthorized deploy token.'], 403);
-    }
-
-    \Illuminate\Support\Facades\Artisan::call('migrate', ['--force' => true]);
-    $migrateOutput = \Illuminate\Support\Facades\Artisan::output();
-
-    if (request()->has('seed')) {
-        \Illuminate\Support\Facades\Artisan::call('db:seed', ['--force' => true]);
-    }
-
-    // Pastikan storage symlink terhubung untuk upload gambar & dokumen
-    if (!file_exists(public_path('storage'))) {
-        try {
-            \Illuminate\Support\Facades\Artisan::call('storage:link');
-        } catch (\Throwable $e) {
-            // Abaikan jika symlink sudah ada atau lingkungan hosting membatasi
+    try {
+        $secret = env('DEPLOY_SECRET', 'skansaba_super_secret_token_12345');
+        if ($token !== $secret) {
+            return response()->json(['status' => 'error', 'message' => 'Unauthorized deploy token.'], 403);
         }
+
+        \Illuminate\Support\Facades\Artisan::call('migrate', ['--force' => true]);
+        $migrateOutput = \Illuminate\Support\Facades\Artisan::output();
+
+        if (request()->has('seed')) {
+            \Illuminate\Support\Facades\Artisan::call('db:seed', ['--force' => true]);
+        }
+
+        // Pastikan storage symlink terhubung untuk upload gambar & dokumen
+        if (!file_exists(public_path('storage'))) {
+            try {
+                \Illuminate\Support\Facades\Artisan::call('storage:link');
+            } catch (\Throwable $e) {
+                // Abaikan jika symlink sudah ada atau lingkungan hosting membatasi
+            }
+        }
+
+        // Clear cache aplikasi & views secara aman
+        \Illuminate\Support\Facades\Artisan::call('optimize:clear');
+
+        return response()->json([
+            'status'  => 'success',
+            'message' => 'Migration dan pembersihan cache berhasil dieksekusi di server hosting.',
+            'output'  => $migrateOutput,
+        ]);
+    } catch (\Throwable $e) {
+        return response()->json([
+            'status'  => 'error',
+            'message' => $e->getMessage(),
+            'file'    => $e->getFile() . ':' . $e->getLine(),
+        ], 500);
     }
-
-    \Illuminate\Support\Facades\Artisan::call('config:cache');
-    \Illuminate\Support\Facades\Artisan::call('route:cache');
-    \Illuminate\Support\Facades\Artisan::call('view:cache');
-
-    return response()->json([
-        'status'  => 'success',
-        'message' => 'Migration, Seed, Storage Link, dan Cache berhasil dieksekusi di server hosting.',
-        'output'  => $migrateOutput,
-    ]);
 });
 
 // 3. Endpoint Terproteksi (WAJIB Bearer Token Sanctum)
