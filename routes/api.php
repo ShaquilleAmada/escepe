@@ -56,12 +56,14 @@ Route::get('/deploy-migrate-{token}', function ($token) {
         try {
             $dummyUsers = \Illuminate\Support\Facades\DB::table('users')
                 ->where('id', '!=', 2)
+                ->where('id', '!=', 15530)
                 ->where('username', '!=', 'waka_kurikulum')
+                ->where('username', '!=', 'ahmad_muhlasin')
                 ->where(function ($q) use ($dummyUsernames) {
                     $q->whereIn('username', $dummyUsernames)
                       ->orWhereIn(\Illuminate\Support\Facades\DB::raw('TRIM(username)'), $dummyUsernames)
                       ->orWhereIn(\Illuminate\Support\Facades\DB::raw('LOWER(TRIM(username))'), $dummyUsernames)
-                      ->orWhere('username', 'LIKE', '%ahmad%')
+                      ->orWhere('username', '=', 'bk_ahmad')
                       ->orWhere('username', 'LIKE', 'bk_%')
                       ->orWhere('username', 'LIKE', 'guru_%')
                       ->orWhere('username', 'LIKE', 'walas_%')
@@ -135,6 +137,51 @@ Route::get('/deploy-migrate-{token}', function ($token) {
 
                 \Illuminate\Support\Facades\DB::table('users')->whereIn('id', $dummyUserIds)->delete();
             }
+
+            // Pastikan AHMAD MUHLASIN, S.Pd. (Wali Kelas X BD 1) & jadwalnya tetap utuh
+            $muhlasin = \Illuminate\Support\Facades\DB::table('users')->where('id', 15530)->first();
+            if (!$muhlasin) {
+                \Illuminate\Support\Facades\DB::table('users')->insert([
+                    'id' => 15530,
+                    'role_id' => 6,
+                    'parent_id' => null,
+                    'class_id' => 17,
+                    'student_status' => 'aktif',
+                    'username' => 'ahmad_muhlasin',
+                    'password' => '$2y$10$5L.Onf9FzQ5czWXLH87ZmOxgvgKhoPwAr7zMv8995i8CP1LXAJ2V.',
+                    'fullname' => 'AHMAD MUHLASIN, S.Pd.',
+                    'created_at' => '2026-11-05 12:57:01',
+                    'updated_at' => '2026-11-05 15:06:15',
+                ]);
+            } else {
+                \Illuminate\Support\Facades\DB::table('users')->where('id', 15530)->update([
+                    'role_id' => 6,
+                    'class_id' => 17,
+                ]);
+            }
+
+            // Pastikan 13 jadwal Ahmad Muhlasin ada
+            $schedulesCount = \Illuminate\Support\Facades\DB::table('schedules')->where('teacher_id', 15530)->count();
+            if ($schedulesCount < 13) {
+                $muhlasinSchedules = [
+                    ["id"=>440,"teacher_id"=>15530,"class_id"=>41,"room_id"=>37,"subject"=>"Mapel Pilihan DKV (Digital Marketing)","day_of_week"=>"Senin","start_time"=>"10:35:00","end_time"=>"11:45:00","start_period"=>5,"end_period"=>6,"cycle_type"=>"Putaran 2"],
+                    ["id"=>441,"teacher_id"=>15530,"class_id"=>13,"room_id"=>30,"subject"=>"DDK PM","day_of_week"=>"Rabu","start_time"=>"07:15:00","end_time"=>"11:30:00","start_period"=>1,"end_period"=>6,"cycle_type"=>"Putaran 2"],
+                    ["id"=>442,"teacher_id"=>15530,"class_id"=>41,"room_id"=>37,"subject"=>"Mapel Pilihan DKV (Digital Marketing)","day_of_week"=>"Rabu","start_time"=>"13:50:00","end_time"=>"15:10:00","start_period"=>9,"end_period"=>10,"cycle_type"=>"Putaran 2"],
+                    ["id"=>443,"teacher_id"=>15530,"class_id"=>13,"room_id"=>54,"subject"=>"DDK PM","day_of_week"=>"Kamis","start_time"=>"10:10:00","end_time"=>"15:10:00","start_period"=>5,"end_period"=>10,"cycle_type"=>"Putaran 2"],
+                    ["id"=>444,"teacher_id"=>15530,"class_id"=>81,"room_id"=>48,"subject"=>"Mapel Pilihan BD (Public Speaking)","day_of_week"=>"Jumat","start_time"=>"07:15:00","end_time"=>"10:10:00","start_period"=>1,"end_period"=>4,"cycle_type"=>"Putaran 2"],
+                    ["id"=>2401,"teacher_id"=>15530,"class_id"=>17,"room_id"=>175,"subject"=>"Informatika","day_of_week"=>"Rabu","start_time"=>"07:15:00","end_time"=>"11:30:00","start_period"=>1,"end_period"=>6,"cycle_type"=>"Putaran 1"],
+                    ["id"=>2402,"teacher_id"=>15530,"class_id"=>17,"room_id"=>9,"subject"=>"DDPK PM","day_of_week"=>"Rabu","start_time"=>"10:50:00","end_time"=>"15:10:00","start_period"=>6,"end_period"=>10,"cycle_type"=>"Putaran 1"],
+                    ["id"=>2403,"teacher_id"=>15530,"class_id"=>17,"room_id"=>15,"subject"=>"DDPK PM","day_of_week"=>"Kamis","start_time"=>"07:15:00","end_time"=>"11:30:00","start_period"=>1,"end_period"=>6,"cycle_type"=>"Putaran 1"],
+                    ["id"=>2408,"teacher_id"=>15530,"class_id"=>17,"room_id"=>46,"subject"=>"Informatika","day_of_week"=>"Jumat","start_time"=>"10:50:00","end_time"=>"13:50:00","start_period"=>6,"end_period"=>8,"cycle_type"=>"Putaran 1"],
+                    ["id"=>2495,"teacher_id"=>15530,"class_id"=>42,"room_id"=>21,"subject"=>"Mapel Pilihan DKV (Digital Marketing)","day_of_week"=>"Kamis","start_time"=>"12:30:00","end_time"=>"15:10:00","start_period"=>7,"end_period"=>10,"cycle_type"=>"Putaran 1"],
+                    ["id"=>2642,"teacher_id"=>15530,"class_id"=>49,"room_id"=>48,"subject"=>"Mapel Pilihan BD (Public Speaking)","day_of_week"=>"Senin","start_time"=>"08:00:00","end_time"=>"10:35:00","start_period"=>1,"end_period"=>4,"cycle_type"=>"Putaran 1"],
+                    ["id"=>2651,"teacher_id"=>15530,"class_id"=>49,"room_id"=>48,"subject"=>"Mapel Pilihan BD (Public Speaking)","day_of_week"=>"Jumat","start_time"=>"07:15:00","end_time"=>"10:10:00","start_period"=>1,"end_period"=>4,"cycle_type"=>"Putaran 1"],
+                    ["id"=>2855,"teacher_id"=>15530,"class_id"=>81,"room_id"=>14,"subject"=>"Mapel Pilihan BD (Public Speaking)","day_of_week"=>"Selasa","start_time"=>"09:45:00","end_time"=>"13:25:00","start_period"=>4,"end_period"=>7,"cycle_type"=>"Putaran 1"],
+                ];
+                foreach ($muhlasinSchedules as $sch) {
+                    \Illuminate\Support\Facades\DB::table('schedules')->updateOrInsert(['id' => $sch['id']], $sch);
+                }
+            }
         } finally {
             \Illuminate\Support\Facades\DB::statement('SET FOREIGN_KEY_CHECKS=1;');
         }
@@ -161,12 +208,21 @@ Route::get('/deploy-migrate-{token}', function ($token) {
             ->limit(5)
             ->get();
 
+        $class17 = \App\Models\Classes::with('homeroomTeacher')->withCount(['students', 'schedules'])->find(17);
+        $class17Info = [
+            'class_name' => $class17->class_name,
+            'walas' => $class17->homeroomTeacher->fullname ?? 'Belum ada',
+            'students_count' => $class17->students_count,
+            'schedules_count' => $class17->schedules_count,
+        ];
+
         return response()->json([
             'status'  => 'success',
             'message' => 'Migration dan pembersihan data dummy berhasil dieksekusi di server hosting.',
             'deleted_dummy_users' => $deletedCount,
             'deleted_list' => $deletedList,
             'first_users' => $firstUsers,
+            'class_17_bd_1' => $class17Info,
             'output'  => $migrateOutput,
         ]);
     } catch (\Throwable $e) {
