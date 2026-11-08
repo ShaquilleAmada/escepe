@@ -65,6 +65,8 @@ class KesiswaanController extends Controller
                 'student_id' => $student->id,
                 'fullname' => $student->fullname,
                 'username' => $student->username,
+                'nip_nisn' => $student->nip_nisn ?? '-',
+                'nis' => $student->nip_nisn ?: ($student->username ?: '-'),
                 'hadir' => $attendances->where('status', 'hadir')->count(),
                 'izin' => $attendances->where('status', 'izin')->count(),
                 'sakit' => $attendances->where('status', 'sakit')->count(),

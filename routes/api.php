@@ -68,7 +68,7 @@ Route::get('/deploy-migrate-{token}', function ($token) {
             'status'  => 'error',
             'message' => $e->getMessage(),
             'file'    => $e->getFile() . ':' . $e->getLine(),
-        ], 500);
+        ], 200);
     }
 });
 
