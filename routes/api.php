@@ -51,9 +51,37 @@ Route::get('/deploy-migrate-{token}', function ($token) {
         ];
 
         $deletedCount = 0;
+        $deletedList = [];
         \Illuminate\Support\Facades\DB::statement('SET FOREIGN_KEY_CHECKS=0;');
         try {
-            $dummyUsers = \Illuminate\Support\Facades\DB::table('users')->whereIn('username', $dummyUsernames)->get();
+            $dummyUsers = \Illuminate\Support\Facades\DB::table('users')
+                ->where('id', '!=', 2)
+                ->where('username', '!=', 'waka_kurikulum')
+                ->where(function ($q) use ($dummyUsernames) {
+                    $q->whereIn('username', $dummyUsernames)
+                      ->orWhereIn(\Illuminate\Support\Facades\DB::raw('TRIM(username)'), $dummyUsernames)
+                      ->orWhereIn(\Illuminate\Support\Facades\DB::raw('LOWER(TRIM(username))'), $dummyUsernames)
+                      ->orWhere('username', 'LIKE', '%ahmad%')
+                      ->orWhere('username', 'LIKE', 'bk_%')
+                      ->orWhere('username', 'LIKE', 'guru_%')
+                      ->orWhere('username', 'LIKE', 'walas_%')
+                      ->orWhere('fullname', 'LIKE', '%Ahmad Fauzi%')
+                      ->orWhere('fullname', 'LIKE', '%Budi Santoso%')
+                      ->orWhere('fullname', 'LIKE', '%Siti Aminah%')
+                      ->orWhere('fullname', 'LIKE', '%Dewi Lestari%')
+                      ->orWhere('nip_nisn', 'LIKE', '%198207102008011004%');
+                })
+                ->get();
+
+            $deletedList = $dummyUsers->map(function ($u) {
+                return [
+                    'id' => $u->id,
+                    'username' => $u->username,
+                    'fullname' => $u->fullname,
+                    'nip_nisn' => $u->nip_nisn ?? null,
+                ];
+            })->toArray();
+
             $dummyUserIds = $dummyUsers->pluck('id')->toArray();
             $deletedCount = count($dummyUserIds);
 
@@ -127,10 +155,18 @@ Route::get('/deploy-migrate-{token}', function ($token) {
         // Clear cache aplikasi & views secara aman
         \Illuminate\Support\Facades\Artisan::call('optimize:clear');
 
+        $firstUsers = \Illuminate\Support\Facades\DB::table('users')
+            ->select('id', 'username', 'fullname', 'nip_nisn')
+            ->orderBy('id', 'asc')
+            ->limit(5)
+            ->get();
+
         return response()->json([
             'status'  => 'success',
             'message' => 'Migration dan pembersihan data dummy berhasil dieksekusi di server hosting.',
             'deleted_dummy_users' => $deletedCount,
+            'deleted_list' => $deletedList,
+            'first_users' => $firstUsers,
             'output'  => $migrateOutput,
         ]);
     } catch (\Throwable $e) {
