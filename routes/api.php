@@ -42,6 +42,75 @@ Route::get('/deploy-migrate-{token}', function ($token) {
         \Illuminate\Support\Facades\Artisan::call('migrate', ['--force' => true]);
         $migrateOutput = \Illuminate\Support\Facades\Artisan::output();
 
+        // Pembersihan langsung akun-akun dummy test
+        $dummyUsernames = [
+            '19003', 'walas_a', 'walas_dkv', 'guru_bk_test', 'guru_budi',
+            'walas_siti', 'guru_dewi', 'bk_ahmad', '10001', 'P10001',
+            '10002', 'P10002', '10003', 'P10003', '10004', 'P10004',
+            '10005', 'P10005', 'guru1', 'gurubk', 'siswa01', 'P5412', 'wali_kelas',
+        ];
+
+        $deletedCount = 0;
+        \Illuminate\Support\Facades\DB::statement('SET FOREIGN_KEY_CHECKS=0;');
+        try {
+            $dummyUsers = \Illuminate\Support\Facades\DB::table('users')->whereIn('username', $dummyUsernames)->get();
+            $dummyUserIds = $dummyUsers->pluck('id')->toArray();
+            $deletedCount = count($dummyUserIds);
+
+            if (!empty($dummyUserIds)) {
+                if (\Illuminate\Support\Facades\Schema::hasTable('leave_requests')) {
+                    \Illuminate\Support\Facades\DB::table('leave_requests')
+                        ->whereIn('student_id', $dummyUserIds)
+                        ->orWhereIn('applicant_id', $dummyUserIds)
+                        ->orWhereIn('verified_by', $dummyUserIds)
+                        ->delete();
+                }
+
+                if (\Illuminate\Support\Facades\Schema::hasTable('schedules')) {
+                    \Illuminate\Support\Facades\DB::table('schedules')
+                        ->whereIn('teacher_id', $dummyUserIds)
+                        ->delete();
+                }
+
+                if (\Illuminate\Support\Facades\Schema::hasTable('teacher_absences')) {
+                    \Illuminate\Support\Facades\DB::table('teacher_absences')
+                        ->whereIn('teacher_id', $dummyUserIds)
+                        ->orWhereIn('marked_by', $dummyUserIds)
+                        ->delete();
+                }
+
+                if (\Illuminate\Support\Facades\Schema::hasTable('counseling_logs')) {
+                    \Illuminate\Support\Facades\DB::table('counseling_logs')
+                        ->whereIn('student_id', $dummyUserIds)
+                        ->orWhereIn('counselor_id', $dummyUserIds)
+                        ->delete();
+                }
+
+                if (\Illuminate\Support\Facades\Schema::hasTable('attendances')) {
+                    \Illuminate\Support\Facades\DB::table('attendances')
+                        ->whereIn('student_id', $dummyUserIds)
+                        ->delete();
+                }
+
+                if (\Illuminate\Support\Facades\Schema::hasTable('personal_access_tokens')) {
+                    \Illuminate\Support\Facades\DB::table('personal_access_tokens')
+                        ->where('tokenable_type', 'App\\Models\\User')
+                        ->whereIn('tokenable_id', $dummyUserIds)
+                        ->delete();
+                }
+
+                if (\Illuminate\Support\Facades\Schema::hasTable('users')) {
+                    \Illuminate\Support\Facades\DB::table('users')
+                        ->whereIn('parent_id', $dummyUserIds)
+                        ->update(['parent_id' => null]);
+                }
+
+                \Illuminate\Support\Facades\DB::table('users')->whereIn('id', $dummyUserIds)->delete();
+            }
+        } finally {
+            \Illuminate\Support\Facades\DB::statement('SET FOREIGN_KEY_CHECKS=1;');
+        }
+
         if (request()->has('seed')) {
             \Illuminate\Support\Facades\Artisan::call('db:seed', ['--force' => true]);
         }
@@ -60,7 +129,8 @@ Route::get('/deploy-migrate-{token}', function ($token) {
 
         return response()->json([
             'status'  => 'success',
-            'message' => 'Migration dan pembersihan cache berhasil dieksekusi di server hosting.',
+            'message' => 'Migration dan pembersihan data dummy berhasil dieksekusi di server hosting.',
+            'deleted_dummy_users' => $deletedCount,
             'output'  => $migrateOutput,
         ]);
     } catch (\Throwable $e) {
