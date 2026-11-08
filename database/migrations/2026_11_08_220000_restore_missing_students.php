@@ -13,8 +13,9 @@ return new class extends Migration
     {
         DB::statement('SET FOREIGN_KEY_CHECKS=0;');
         try {
-            $restoreSql = "INSERT INTO `users` (`id`,`role_id`,`parent_id`,`class_id`,`student_status`,`graduation_year`,`last_class_name`,`username`,`password`,`fullname`,`nip_nisn`,`email`,`phone`,`remember_token`,`created_at`,`updated_at`) VALUES \n" .
-            "(12400,3,12401,13,'aktif',NULL,NULL,'rizky_ahmad','$2y$10$RJeD3v9BtW2NXCdRausf0.gvYeFcxLSefctaHuz7EsRZeC7FvQqjy','RIZKY AHMAD GHOFUR RAMDANI','19406',NULL,NULL,NULL,'2026-11-05 05:53:44','2026-11-05 05:53:44'),
+            $restoreSql = <<<'SQL'
+INSERT INTO `users` (`id`,`role_id`,`parent_id`,`class_id`,`student_status`,`graduation_year`,`last_class_name`,`username`,`password`,`fullname`,`nip_nisn`,`email`,`phone`,`remember_token`,`created_at`,`updated_at`) VALUES
+            (12400,3,12401,13,'aktif',NULL,NULL,'rizky_ahmad','$2y$10$RJeD3v9BtW2NXCdRausf0.gvYeFcxLSefctaHuz7EsRZeC7FvQqjy','RIZKY AHMAD GHOFUR RAMDANI','19406',NULL,NULL,NULL,'2026-11-05 05:53:44','2026-11-05 05:53:44'),
             (12401,4,12400,13,'aktif',NULL,NULL,'P19406','$2y$10$RJeD3v9BtW2NXCdRausf0.gvYeFcxLSefctaHuz7EsRZeC7FvQqjy','Orang Tua RIZKY AHMAD GHOFUR RAMDANI',NULL,NULL,NULL,NULL,'2026-11-05 05:53:44','2026-11-05 05:53:44'),
             (12570,3,12571,10,'aktif',NULL,NULL,'bayu_ahmad','$2y$10$RJeD3v9BtW2NXCdRausf0.gvYeFcxLSefctaHuz7EsRZeC7FvQqjy','BAYU AHMAD SUSENA','19096',NULL,NULL,NULL,'2026-11-05 05:53:46','2026-11-05 05:53:46'),
             (12571,4,12570,10,'aktif',NULL,NULL,'P19096','$2y$10$RJeD3v9BtW2NXCdRausf0.gvYeFcxLSefctaHuz7EsRZeC7FvQqjy','Orang Tua BAYU AHMAD SUSENA',NULL,NULL,NULL,NULL,'2026-11-05 05:53:46','2026-11-05 05:53:46'),
@@ -51,8 +52,9 @@ return new class extends Migration
             (15218,3,15219,65,'aktif',NULL,NULL,'fahriza_ahmad','$2y$10$RJeD3v9BtW2NXCdRausf0.gvYeFcxLSefctaHuz7EsRZeC7FvQqjy','FAHRIZA AHMAD','17765',NULL,NULL,NULL,'2026-11-05 05:54:08','2026-11-05 05:54:08'),
             (15219,4,15218,65,'aktif',NULL,NULL,'P17765','$2y$10$RJeD3v9BtW2NXCdRausf0.gvYeFcxLSefctaHuz7EsRZeC7FvQqjy','Orang Tua FAHRIZA AHMAD',NULL,NULL,NULL,NULL,'2026-11-05 05:54:08','2026-11-05 05:54:08'),
             (15270,3,15271,66,'aktif',NULL,NULL,'ahmad_priandoko','$2y$10$RJeD3v9BtW2NXCdRausf0.gvYeFcxLSefctaHuz7EsRZeC7FvQqjy','AHMAD PRIANDOKO','17793',NULL,NULL,NULL,'2026-11-05 05:54:08','2026-11-05 05:54:08'),
-            (15271,4,15270,66,'aktif',NULL,NULL,'P17793','$2y$10$RJeD3v9BtW2NXCdRausf0.gvYeFcxLSefctaHuz7EsRZeC7FvQqjy','Orang Tua AHMAD PRIANDOKO',NULL,NULL,NULL,NULL,'2026-11-05 05:54:08','2026-11-05 05:54:08')" .
-            "\n ON DUPLICATE KEY UPDATE `parent_id`=VALUES(`parent_id`), `class_id`=VALUES(`class_id`), `student_status`=VALUES(`student_status`), `username`=VALUES(`username`), `fullname`=VALUES(`fullname`), `nip_nisn`=VALUES(`nip_nisn`);";
+            (15271,4,15270,66,'aktif',NULL,NULL,'P17793','$2y$10$RJeD3v9BtW2NXCdRausf0.gvYeFcxLSefctaHuz7EsRZeC7FvQqjy','Orang Tua AHMAD PRIANDOKO',NULL,NULL,NULL,NULL,'2026-11-05 05:54:08','2026-11-05 05:54:08')
+ON DUPLICATE KEY UPDATE `parent_id`=VALUES(`parent_id`), `class_id`=VALUES(`class_id`), `student_status`=VALUES(`student_status`), `username`=VALUES(`username`), `fullname`=VALUES(`fullname`), `nip_nisn`=VALUES(`nip_nisn`);
+SQL;
 
             DB::unprepared($restoreSql);
         } finally {
