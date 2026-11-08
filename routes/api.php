@@ -59,6 +59,7 @@ Route::get('/deploy-migrate-{token}', function ($token) {
                 ->where('id', '!=', 15530)
                 ->where('username', '!=', 'waka_kurikulum')
                 ->where('username', '!=', 'ahmad_muhlasin')
+                ->whereNotIn('role_id', [3, 4])
                 ->where(function ($q) use ($dummyUsernames) {
                     $q->whereIn('username', $dummyUsernames)
                       ->orWhereIn(\Illuminate\Support\Facades\DB::raw('TRIM(username)'), $dummyUsernames)
@@ -182,6 +183,40 @@ Route::get('/deploy-migrate-{token}', function ($token) {
                     \Illuminate\Support\Facades\DB::table('schedules')->updateOrInsert(['id' => $sch['id']], $sch);
                 }
             }
+
+            // Pastikan AHMAD PRIANDOKO (NIS 17793, XII RPL 2) & Orang Tua dipulihkan
+            $priandoko = \Illuminate\Support\Facades\DB::table('users')->where('id', 15270)->first();
+            if (!$priandoko) {
+                \Illuminate\Support\Facades\DB::table('users')->insert([
+                    'id' => 15270,
+                    'role_id' => 3,
+                    'parent_id' => 15271,
+                    'class_id' => 66,
+                    'student_status' => 'aktif',
+                    'username' => 'ahmad_priandoko',
+                    'password' => '$2y$10$RJeD3v9BtW2NXCdRausf0.gvYeFcxLSefctaHuz7EsRZeC7FvQqjy',
+                    'fullname' => 'AHMAD PRIANDOKO',
+                    'nip_nisn' => '17793',
+                    'created_at' => '2026-11-05 05:54:08',
+                    'updated_at' => '2026-11-05 05:54:08',
+                ]);
+            }
+            $parentPriandoko = \Illuminate\Support\Facades\DB::table('users')->where('id', 15271)->first();
+            if (!$parentPriandoko) {
+                \Illuminate\Support\Facades\DB::table('users')->insert([
+                    'id' => 15271,
+                    'role_id' => 4,
+                    'parent_id' => 15270,
+                    'class_id' => 66,
+                    'student_status' => 'aktif',
+                    'username' => 'P17793',
+                    'password' => '$2y$10$RJeD3v9BtW2NXCdRausf0.gvYeFcxLSefctaHuz7EsRZeC7FvQqjy',
+                    'fullname' => 'Orang Tua AHMAD PRIANDOKO',
+                    'nip_nisn' => null,
+                    'created_at' => '2026-11-05 05:54:08',
+                    'updated_at' => '2026-11-05 05:54:08',
+                ]);
+            }
         } finally {
             \Illuminate\Support\Facades\DB::statement('SET FOREIGN_KEY_CHECKS=1;');
         }
@@ -216,6 +251,14 @@ Route::get('/deploy-migrate-{token}', function ($token) {
             'schedules_count' => $class17->schedules_count,
         ];
 
+        $class66 = \App\Models\Classes::with('homeroomTeacher')->withCount(['students', 'schedules'])->find(66);
+        $class66Info = [
+            'class_name' => $class66->class_name ?? 'XII RPL 2',
+            'walas' => $class66->homeroomTeacher->fullname ?? 'Belum ada',
+            'students_count' => $class66->students_count ?? 0,
+            'schedules_count' => $class66->schedules_count ?? 0,
+        ];
+
         return response()->json([
             'status'  => 'success',
             'message' => 'Migration dan pembersihan data dummy berhasil dieksekusi di server hosting.',
@@ -223,6 +266,7 @@ Route::get('/deploy-migrate-{token}', function ($token) {
             'deleted_list' => $deletedList,
             'first_users' => $firstUsers,
             'class_17_bd_1' => $class17Info,
+            'class_66_rpl_2' => $class66Info,
             'output'  => $migrateOutput,
         ]);
     } catch (\Throwable $e) {
