@@ -217,6 +217,26 @@ Route::get('/deploy-migrate-{token}', function ($token) {
                     'updated_at' => '2026-11-05 05:54:08',
                 ]);
             }
+            // Pembersihan akun guru duplikat & nama corrupt
+            // 1. Pindahkan jadwal dari 15847 (ERIDHA SEPITASARI,) ke 15536 (ERIDHA DEWI SEPITASARI, S.Pd.)
+            \Illuminate\Support\Facades\DB::table('schedules')->where('teacher_id', 15847)->update(['teacher_id' => 15536]);
+
+            // 2. Pindahkan jadwal dari 15843 (sri_nur_arofah) ke 15532 (sri_nur)
+            \Illuminate\Support\Facades\DB::table('schedules')->where('teacher_id', 15843)->update(['teacher_id' => 15532]);
+
+            // 3. Hapus user duplikat / korup: 15846 (Sri Widayati panjang), 15847, 15843
+            \Illuminate\Support\Facades\DB::table('users')->whereIn('id', [15846, 15847, 15843])
+                ->orWhere('username', 'sri_widayati_pendidikan')
+                ->orWhere('fullname', 'like', '%Pendidikan Agama dan Budi Pekerti%')
+                ->delete();
+
+            // 4. Rapikan username wahyuni_sejarah -> wahyuni
+            \Illuminate\Support\Facades\DB::table('users')->where('id', 15940)->update(['username' => 'wahyuni']);
+
+            // 5. Rapikan typo titik / spasi
+            \Illuminate\Support\Facades\DB::table('users')->where('id', 15514)->update(['fullname' => 'Dra. SITI KHUSNUL KHOTIMAH']);
+            \Illuminate\Support\Facades\DB::table('users')->where('id', 15845)->update(['fullname' => 'Dra. SRI SULASTRI']);
+            \Illuminate\Support\Facades\DB::table('users')->where('id', 15526)->update(['fullname' => 'KURNIA SAFITRI, S.Pd.']);
         } finally {
             \Illuminate\Support\Facades\DB::statement('SET FOREIGN_KEY_CHECKS=1;');
         }
