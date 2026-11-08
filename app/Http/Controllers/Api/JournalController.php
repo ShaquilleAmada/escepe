@@ -105,6 +105,13 @@ class JournalController extends Controller
             'journal_exists'   => !is_null($existingJournal),
             'existing_journal' => $existingJournal,
             'students'         => $formattedStudents,
+            'data'             => [
+                'schedule'         => $schedule,
+                'date'             => $todayDate,
+                'journal_exists'   => !is_null($existingJournal),
+                'existing_journal' => $existingJournal,
+                'students'         => $formattedStudents,
+            ],
         ], 200);
     }
 
