@@ -3,12 +3,13 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
-use App\Models\Journal;
 use App\Models\Attendance;
-use App\Models\Schedule;
+use App\Models\Journal;
 use App\Models\LeaveRequest;
+use App\Models\Schedule;
 use App\Models\User;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class JournalController extends Controller
 {
@@ -34,7 +35,7 @@ class JournalController extends Controller
 
         return response()->json([
             'success' => true,
-            'data'    => $journals
+            'data' => $journals,
         ], 200);
     }
 
@@ -44,18 +45,18 @@ class JournalController extends Controller
             'schedule.teacher:id,fullname',
             'schedule.schoolClass:id,class_name',
             'schedule.room:id,room_name',
-            'attendances.student:id,fullname,username'
+            'attendances.student:id,fullname,username',
         ])->findOrFail($id);
 
         return response()->json([
             'success' => true,
-            'data'    => $journal
+            'data' => $journal,
         ], 200);
     }
 
     public function getStudentsForSession(Request $request, $scheduleId)
     {
-        $schedule  = Schedule::with(['schoolClass', 'room'])->findOrFail($scheduleId);
+        $schedule = Schedule::with(['schoolClass', 'room'])->findOrFail($scheduleId);
         $todayDate = date('Y-m-d');
 
         // Cek apakah jurnal sudah pernah diisi untuk hari ini
@@ -78,39 +79,39 @@ class JournalController extends Controller
             ->keyBy('student_id');
 
         $formattedStudents = $students->map(function ($student) use ($approvedLeaves) {
-            $hasLeave      = isset($approvedLeaves[$student->id]);
+            $hasLeave = isset($approvedLeaves[$student->id]);
             $defaultStatus = 'hadir';
-            $leaveReason   = null;
+            $leaveReason = null;
 
             if ($hasLeave) {
-                $leaveInfo     = $approvedLeaves[$student->id];
-                $leaveReason   = $leaveInfo->reason;
-                $defaultStatus = stripos($leaveReason, 'sakit') !== false ? 'sakit' : 'izin';
+                $leaveInfo = $approvedLeaves[$student->id];
+                $leaveReason = $leaveInfo->reason;
+                $defaultStatus = ($leaveInfo->leave_type === 'sakit' || stripos($leaveReason ?? '', 'sakit') !== false) ? 'sakit' : 'izin';
             }
 
             return [
-                'id'               => $student->id,
-                'fullname'         => $student->fullname,
-                'username'         => $student->username,
-                'default_status'   => $defaultStatus,
-                'is_approved_leave'=> $hasLeave,
-                'leave_reason'     => $leaveReason,
+                'id' => $student->id,
+                'fullname' => $student->fullname,
+                'username' => $student->username,
+                'default_status' => $defaultStatus,
+                'is_approved_leave' => $hasLeave,
+                'leave_reason' => $leaveReason,
             ];
         });
 
         return response()->json([
-            'success'          => true,
-            'schedule'         => $schedule,
-            'date'             => $todayDate,
-            'journal_exists'   => !is_null($existingJournal),
+            'success' => true,
+            'schedule' => $schedule,
+            'date' => $todayDate,
+            'journal_exists' => ! is_null($existingJournal),
             'existing_journal' => $existingJournal,
-            'students'         => $formattedStudents,
-            'data'             => [
-                'schedule'         => $schedule,
-                'date'             => $todayDate,
-                'journal_exists'   => !is_null($existingJournal),
+            'students' => $formattedStudents,
+            'data' => [
+                'schedule' => $schedule,
+                'date' => $todayDate,
+                'journal_exists' => ! is_null($existingJournal),
                 'existing_journal' => $existingJournal,
-                'students'         => $formattedStudents,
+                'students' => $formattedStudents,
             ],
         ], 200);
     }
@@ -130,13 +131,13 @@ class JournalController extends Controller
         }
 
         $validated = $request->validate([
-            'schedule_id'              => 'required|exists:schedules,id',
-            'date'                     => 'required|date',
-            'topic_description'        => 'required|string',
-            'photo'                    => 'required|image|mimes:jpg,jpeg,png|max:2048',
-            'attendances'              => 'required|array',
+            'schedule_id' => 'required|exists:schedules,id',
+            'date' => 'required|date',
+            'topic_description' => 'required|string',
+            'photo' => 'required|image|mimes:jpg,jpeg,png|max:2048',
+            'attendances' => 'required|array',
             'attendances.*.student_id' => 'required|exists:users,id',
-            'attendances.*.status'     => 'required|in:hadir,izin,sakit,alpa',
+            'attendances.*.status' => 'required|in:hadir,izin,sakit,alpa',
         ]);
 
         // Cegah duplikasi jurnal: satu jadwal + satu tanggal = satu jurnal
@@ -147,34 +148,36 @@ class JournalController extends Controller
         if ($existing) {
             return response()->json([
                 'success' => false,
-                'message' => 'Jurnal untuk jadwal ini pada tanggal ' . $validated['date'] . ' sudah ada. Gunakan data yang sudah tersimpan.',
-                'data'    => $existing->load(['attendances']),
+                'message' => 'Jurnal untuk jadwal ini pada tanggal '.$validated['date'].' sudah ada. Gunakan data yang sudah tersimpan.',
+                'data' => $existing->load(['attendances']),
             ], 422);
         }
 
-        $photoPath = $request->file('photo')->store('photos/journals', 'public');
+        return DB::transaction(function () use ($request, $validated) {
+            $photoPath = $request->file('photo')->store('photos/journals', 'public');
 
-        $journal = Journal::create([
-            'schedule_id'       => $validated['schedule_id'],
-            'date'              => $validated['date'],
-            'topic_description' => $validated['topic_description'],
-            'photo_path'        => $photoPath,
-        ]);
-
-        foreach ($validated['attendances'] as $att) {
-            Attendance::create([
-                'journal_id' => $journal->id,
-                'student_id' => $att['student_id'],
-                'status'     => $att['status'],
-                'date'       => $validated['date'],
+            $journal = Journal::create([
+                'schedule_id' => $validated['schedule_id'],
+                'date' => $validated['date'],
+                'topic_description' => $validated['topic_description'],
+                'photo_path' => $photoPath,
             ]);
-        }
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Jurnal dan presensi kelas berhasil disimpan',
-            'data'    => $journal->load(['attendances']),
-        ], 201);
+            foreach ($validated['attendances'] as $att) {
+                Attendance::create([
+                    'journal_id' => $journal->id,
+                    'student_id' => $att['student_id'],
+                    'status' => $att['status'],
+                    'date' => $validated['date'],
+                ]);
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Jurnal dan presensi kelas berhasil disimpan',
+                'data' => $journal->load(['attendances']),
+            ], 201);
+        });
     }
 
     /**
@@ -189,7 +192,7 @@ class JournalController extends Controller
         if ($user->role_id != 1 && $journal->schedule->teacher_id != $user->id) {
             return response()->json([
                 'success' => false,
-                'message' => 'Akses ditolak. Anda hanya dapat mengubah jurnal mengajar Anda sendiri.'
+                'message' => 'Akses ditolak. Anda hanya dapat mengubah jurnal mengajar Anda sendiri.',
             ], 403);
         }
 
@@ -202,11 +205,11 @@ class JournalController extends Controller
         }
 
         $validated = $request->validate([
-            'topic_description'        => 'sometimes|required|string',
-            'photo'                    => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
-            'attendances'              => 'nullable|array',
+            'topic_description' => 'sometimes|required|string',
+            'photo' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
+            'attendances' => 'nullable|array',
             'attendances.*.student_id' => 'required_with:attendances|exists:users,id',
-            'attendances.*.status'     => 'required_with:attendances|in:hadir,izin,sakit,alpa',
+            'attendances.*.status' => 'required_with:attendances|in:hadir,izin,sakit,alpa',
         ]);
 
         if ($request->has('topic_description')) {
@@ -220,7 +223,7 @@ class JournalController extends Controller
         $journal->save();
 
         // Update attendances jika disertakan
-        if (!empty($validated['attendances'])) {
+        if (! empty($validated['attendances'])) {
             foreach ($validated['attendances'] as $att) {
                 Attendance::updateOrCreate(
                     [
@@ -229,7 +232,7 @@ class JournalController extends Controller
                     ],
                     [
                         'status' => $att['status'],
-                        'date'   => $journal->date,
+                        'date' => $journal->date,
                     ]
                 );
             }
@@ -238,7 +241,7 @@ class JournalController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Jurnal dan presensi berhasil diperbarui',
-            'data'    => $journal->fresh()->load(['attendances.student:id,fullname,username', 'schedule']),
+            'data' => $journal->fresh()->load(['attendances.student:id,fullname,username', 'schedule']),
         ], 200);
     }
 
@@ -248,16 +251,16 @@ class JournalController extends Controller
      */
     public function getAttendanceSummary(Request $request)
     {
-        $user      = $request->user();
+        $user = $request->user();
         $studentId = $request->student_id;
 
         if ($user->role_id == 3) { // Siswa
             $studentId = $user->id;
         } elseif ($user->role_id == 4) { // Ortu — fix null safety
-            $child     = $user->children()->first();
+            $child = $user->children()->first();
             $studentId = $child ? $child->id : null;
 
-            if (!$studentId) {
+            if (! $studentId) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Akun orang tua ini belum dikaitkan dengan data siswa.',
@@ -272,16 +275,16 @@ class JournalController extends Controller
 
         $summary = [
             'total_sesi' => $query->count(),
-            'hadir'      => (clone $query)->where('status', 'hadir')->count(),
-            'izin'       => (clone $query)->where('status', 'izin')->count(),
-            'sakit'      => (clone $query)->where('status', 'sakit')->count(),
-            'alpa'       => (clone $query)->where('status', 'alpa')->count(),
+            'hadir' => (clone $query)->where('status', 'hadir')->count(),
+            'izin' => (clone $query)->where('status', 'izin')->count(),
+            'sakit' => (clone $query)->where('status', 'sakit')->count(),
+            'alpa' => (clone $query)->where('status', 'alpa')->count(),
         ];
 
         return response()->json([
-            'success'    => true,
+            'success' => true,
             'student_id' => $studentId,
-            'summary'    => $summary,
+            'summary' => $summary,
         ], 200);
     }
 }

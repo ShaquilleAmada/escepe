@@ -3,22 +3,22 @@
 namespace App\Http\Controllers\Web\Waka;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
+use App\Models\Attendance;
 use App\Models\Classes;
 use App\Models\Journal;
-use App\Models\Attendance;
+use App\Models\LeaveRequest;
+use App\Models\Role;
 use App\Models\User;
-use App\Models\Schedule;
-use App\Models\SystemConfiguration;
 use App\Services\AttendanceRecapService;
 use Carbon\Carbon;
+use Illuminate\Http\Request;
 
 class AttendanceRecapController extends Controller
 {
     public function index(Request $request)
     {
-        $grades   = ['XII', 'XI', 'X'];
-        $majors   = Classes::MAJORS;
+        $grades = ['XII', 'XI', 'X'];
+        $majors = Classes::MAJORS;
         sort($majors);
         $sections = Classes::SECTIONS;
 
@@ -46,7 +46,7 @@ class AttendanceRecapController extends Controller
                 WHEN grade_level = 'X' OR class_name LIKE 'X %' THEN 3 
                 ELSE 4 END ASC")
             ->orderBy('major', 'asc')
-            ->orderByRaw("CAST(section AS UNSIGNED) ASC")
+            ->orderByRaw('CAST(section AS UNSIGNED) ASC')
             ->orderBy('class_name', 'asc')
             ->get();
 
@@ -79,35 +79,48 @@ class AttendanceRecapController extends Controller
         // Rekapitulasi per Kelas beserta Status Belum Final / Final
         $recapPerClass = $classes->map(function ($class) use ($journalsByClass, $attendances, $date) {
             $classJournals = $journalsByClass->get($class->id, collect());
-            $journalCount  = $classJournals->count();
+            $journalCount = $classJournals->count();
 
             $classAtts = $attendances->filter(function ($att) use ($class) {
                 $studentClassId = $att->student->class_id ?? null;
                 $journalClassId = $att->journal->schedule->class_id ?? null;
+
                 return $studentClassId == $class->id || $journalClassId == $class->id;
             });
 
             $hadir = $classAtts->where('status', 'hadir')->count();
-            $izin  = $classAtts->where('status', 'izin')->count();
+            $izin = $classAtts->where('status', 'izin')->count();
             $sakit = $classAtts->where('status', 'sakit')->count();
-            $alpa  = $classAtts->where('status', 'alpa')->count();
+            $alpa = $classAtts->where('status', 'alpa')->count();
+
+            // Hitung sakit & izin dari surat izin yang disetujui pada tanggal ini
+            $approvedLeavesToday = LeaveRequest::where('status_approval', 'approved')
+                ->whereDate('start_date', '<=', $date)
+                ->whereDate('end_date', '>=', $date)
+                ->whereHas('student', fn ($q) => $q->where('class_id', $class->id))
+                ->get();
+
+            $sakitLeaves = $approvedLeavesToday->where('leave_type', 'sakit')->count();
+            $izinLeaves = $approvedLeavesToday->where('leave_type', '!=', 'sakit')->count();
+            $sakit = max($sakit, $sakitLeaves);
+            $izin = max($izin, $izinLeaves);
 
             // Status Final vs Belum Final otomatis
             $recapStatus = AttendanceRecapService::getClassDayStatus($class->id, $date);
 
             return [
-                'class_id'     => $class->id,
-                'class_name'   => $class->class_name,
-                'jurnal'       => $journalCount,
-                'hadir'        => $hadir,
-                'izin'         => $izin,
-                'sakit'        => $sakit,
-                'alpa'         => $alpa,
-                'status'       => $recapStatus['status'],
+                'class_id' => $class->id,
+                'class_name' => $class->class_name,
+                'jurnal' => $journalCount,
+                'hadir' => $hadir,
+                'izin' => $izin,
+                'sakit' => $sakit,
+                'alpa' => $alpa,
+                'status' => $recapStatus['status'],
                 'status_label' => $recapStatus['label'],
                 'status_color' => $recapStatus['color'],
-                'status_reason'=> $recapStatus['reason'],
-                'is_final'     => $recapStatus['is_final'],
+                'status_reason' => $recapStatus['reason'],
+                'is_final' => $recapStatus['is_final'],
             ];
         });
 
@@ -125,8 +138,8 @@ class AttendanceRecapController extends Controller
         // Summary totals across classes
         $totalHadir = $recapPerClass->sum('hadir');
         $totalSakit = $recapPerClass->sum('sakit');
-        $totalIzin  = $recapPerClass->sum('izin');
-        $totalAlpa  = $recapPerClass->sum('alpa');
+        $totalIzin = $recapPerClass->sum('izin');
+        $totalAlpa = $recapPerClass->sum('alpa');
 
         return view('waka.attendances.recap', compact(
             'classes', 'grades', 'majors', 'sections', 'date', 'statusFilter',
@@ -150,7 +163,7 @@ class AttendanceRecapController extends Controller
 
         // Ambil Jurnal kelas ini pada tanggal tersebut
         $journals = Journal::whereDate('date', $date)
-            ->whereHas('schedule', fn($q) => $q->where('class_id', $class->id))
+            ->whereHas('schedule', fn ($q) => $q->where('class_id', $class->id))
             ->with(['schedule.teacher'])
             ->get();
 
@@ -161,12 +174,26 @@ class AttendanceRecapController extends Controller
             ->get()
             ->groupBy('student_id');
 
-        $studentList = $students->map(function ($s) use ($attendances) {
+        // Ambil surat izin yang disetujui pada tanggal tersebut
+        $approvedLeavesMap = LeaveRequest::where('status_approval', 'approved')
+            ->whereDate('start_date', '<=', $date)
+            ->whereDate('end_date', '>=', $date)
+            ->whereIn('student_id', $students->pluck('id'))
+            ->get()
+            ->keyBy('student_id');
+
+        $studentList = $students->map(function ($s) use ($attendances, $approvedLeavesMap) {
             $studentAtts = $attendances->get($s->id, collect());
-            
+
             if ($studentAtts->isEmpty()) {
-                $status = 'belum_diabsen';
-                $statusLabel = 'Belum Ada Data';
+                if (isset($approvedLeavesMap[$s->id])) {
+                    $leave = $approvedLeavesMap[$s->id];
+                    $status = $leave->leave_type === 'sakit' ? 'sakit' : 'izin';
+                    $statusLabel = ucfirst($status).' (Disetujui)';
+                } else {
+                    $status = 'belum_diabsen';
+                    $statusLabel = 'Belum Ada Data';
+                }
             } else {
                 $first = $studentAtts->first();
                 $status = $first->status;
@@ -174,14 +201,14 @@ class AttendanceRecapController extends Controller
             }
 
             return [
-                'id'           => $s->id,
-                'fullname'     => $s->fullname,
-                'username'     => $s->username,
-                'nip_nisn'     => $s->nip_nisn ?? '-',
-                'status'       => $status,
+                'id' => $s->id,
+                'fullname' => $s->fullname,
+                'username' => $s->username,
+                'nip_nisn' => $s->nip_nisn ?? '-',
+                'status' => $status,
                 'status_label' => $statusLabel,
-                'attendances'  => $studentAtts->map(fn($a) => [
-                    'status'  => $a->status,
+                'attendances' => $studentAtts->map(fn ($a) => [
+                    'status' => $a->status,
                     'subject' => $a->journal->schedule->subject ?? '-',
                     'teacher' => $a->journal->schedule->teacher->fullname ?? '-',
                 ]),
@@ -190,26 +217,26 @@ class AttendanceRecapController extends Controller
 
         $summary = [
             'total_students' => $students->count(),
-            'hadir'          => $studentList->where('status', 'hadir')->count(),
-            'izin'           => $studentList->where('status', 'izin')->count(),
-            'sakit'          => $studentList->where('status', 'sakit')->count(),
-            'alpa'           => $studentList->where('status', 'alpa')->count(),
-            'belum_diabsen'  => $studentList->where('status', 'belum_diabsen')->count(),
+            'hadir' => $studentList->where('status', 'hadir')->count(),
+            'izin' => $studentList->where('status', 'izin')->count(),
+            'sakit' => $studentList->where('status', 'sakit')->count(),
+            'alpa' => $studentList->where('status', 'alpa')->count(),
+            'belum_diabsen' => $studentList->where('status', 'belum_diabsen')->count(),
         ];
 
         return response()->json([
-            'class_id'       => $class->id,
-            'class_name'     => $class->class_name,
-            'date'           => $date,
+            'class_id' => $class->id,
+            'class_name' => $class->class_name,
+            'date' => $date,
             'date_formatted' => Carbon::parse($date)->format('d/m/Y'),
-            'journals'       => $journals->map(fn($j) => [
-                'id'          => $j->id,
-                'subject'     => $j->schedule->subject ?? '-',
-                'teacher'     => $j->schedule->teacher->fullname ?? '-',
+            'journals' => $journals->map(fn ($j) => [
+                'id' => $j->id,
+                'subject' => $j->schedule->subject ?? '-',
+                'teacher' => $j->schedule->teacher->fullname ?? '-',
                 'period_text' => $j->schedule->period_text ?? '-',
             ]),
-            'summary'        => $summary,
-            'students'       => $studentList->values(),
+            'summary' => $summary,
+            'students' => $studentList->values(),
         ]);
     }
 }
