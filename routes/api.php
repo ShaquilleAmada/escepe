@@ -47,14 +47,11 @@ Route::get('/deploy-migrate-{token}', function ($token) {
         \Illuminate\Support\Facades\Artisan::call('migrate', ['--force' => true]);
         $migrateOutput = \Illuminate\Support\Facades\Artisan::output();
 
-        // Pembersihan seluruh data permohonan izin (leave_requests) dummy/nyangkut
+        // Clear route & cache agar perubahan route langsung aktif
+        \Illuminate\Support\Facades\Artisan::call('route:clear');
+        \Illuminate\Support\Facades\Artisan::call('config:clear');
+
         $deletedLeaves = 0;
-        if (\Illuminate\Support\Facades\Schema::hasTable('leave_requests')) {
-            \Illuminate\Support\Facades\DB::statement('SET FOREIGN_KEY_CHECKS=0;');
-            $deletedLeaves = \Illuminate\Support\Facades\DB::table('leave_requests')->count();
-            \Illuminate\Support\Facades\DB::table('leave_requests')->truncate();
-            \Illuminate\Support\Facades\DB::statement('SET FOREIGN_KEY_CHECKS=1;');
-        }
 
         // Pembersihan langsung akun-akun dummy test
         $dummyUsernames = [
@@ -359,7 +356,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/leave-requests/pending-count', [LeaveRequestController::class, 'pendingCount']);
     Route::post('/leave-requests', [LeaveRequestController::class, 'store']);
     Route::get('/leave-requests/{id}', [LeaveRequestController::class, 'show']);
-    Route::get('/leave-requests/{id}/document', [LeaveRequestController::class, 'downloadDocument'])->name('api.leave-requests.document');
     Route::match(['post', 'patch', 'put'], '/leave-requests/{id}/verify', [LeaveRequestController::class, 'verify']);
     Route::delete('/leave-requests/{id}', [LeaveRequestController::class, 'destroy']);
 
