@@ -39,8 +39,19 @@ Route::get('/deploy-migrate-{token}', function ($token) {
             return response()->json(['status' => 'error', 'message' => 'Unauthorized deploy token.'], 403);
         }
 
+        $gitOutput = shell_exec('git pull origin main 2>&1') ?? 'Git not executed';
+
         \Illuminate\Support\Facades\Artisan::call('migrate', ['--force' => true]);
         $migrateOutput = \Illuminate\Support\Facades\Artisan::output();
+
+        // Pembersihan seluruh data permohonan izin (leave_requests) dummy/nyangkut
+        $deletedLeaves = 0;
+        if (\Illuminate\Support\Facades\Schema::hasTable('leave_requests')) {
+            \Illuminate\Support\Facades\DB::statement('SET FOREIGN_KEY_CHECKS=0;');
+            $deletedLeaves = \Illuminate\Support\Facades\DB::table('leave_requests')->count();
+            \Illuminate\Support\Facades\DB::table('leave_requests')->truncate();
+            \Illuminate\Support\Facades\DB::statement('SET FOREIGN_KEY_CHECKS=1;');
+        }
 
         // Pembersihan langsung akun-akun dummy test
         $dummyUsernames = [
@@ -282,6 +293,8 @@ Route::get('/deploy-migrate-{token}', function ($token) {
         return response()->json([
             'status' => 'success',
             'message' => 'Migration dan pembersihan data dummy berhasil dieksekusi di server hosting.',
+            'deleted_leaves_count' => $deletedLeaves,
+            'git_output' => $gitOutput,
             'deleted_dummy_users' => $deletedCount,
             'deleted_list' => $deletedList,
             'first_users' => $firstUsers,
