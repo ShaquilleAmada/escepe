@@ -213,13 +213,23 @@ class LeaveRequestController extends Controller
         if (! Storage::disk('local')->exists($leave->document_path)) {
             // Cek fallback jika tersimpan di disk public lama
             if (Storage::disk('public')->exists($leave->document_path)) {
-                return response()->file(Storage::disk('public')->path($leave->document_path));
+                return response()->file(Storage::disk('public')->path($leave->document_path), [
+                    'Access-Control-Allow-Origin' => '*',
+                    'Access-Control-Allow-Methods' => 'GET, OPTIONS',
+                    'Access-Control-Allow-Headers' => 'Authorization, Content-Type, X-Requested-With',
+                    'Cache-Control' => 'no-cache, private',
+                ]);
             }
 
             return response()->json(['success' => false, 'message' => 'File fisik dokumen tidak ditemukan di server.'], 404);
         }
 
-        return response()->file(Storage::disk('local')->path($leave->document_path));
+        return response()->file(Storage::disk('local')->path($leave->document_path), [
+            'Access-Control-Allow-Origin' => '*',
+            'Access-Control-Allow-Methods' => 'GET, OPTIONS',
+            'Access-Control-Allow-Headers' => 'Authorization, Content-Type, X-Requested-With',
+            'Cache-Control' => 'no-cache, private',
+        ]);
     }
 
     public function verify(Request $request, $id, LeaveBypassService $bypassService)
