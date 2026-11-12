@@ -162,6 +162,25 @@ class LeaveRequestController extends Controller
     public function downloadDocument(Request $request, $id)
     {
         $user = $request->user();
+
+        // Dukung otorisasi via query ?token= atau header Authorization (khusus Flutter Web / HTML <img> tag)
+        if (! $user) {
+            $rawToken = $request->query('token') ?: $request->bearerToken();
+            if ($rawToken) {
+                $tokenModel = \Laravel\Sanctum\PersonalAccessToken::findToken($rawToken);
+                if ($tokenModel) {
+                    $user = $tokenModel->tokenable;
+                }
+            }
+        }
+
+        if (! $user) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Anda belum login atau token tidak valid. Silakan login kembali.',
+            ], 401);
+        }
+
         $leave = LeaveRequest::with('student')->findOrFail($id);
 
         if (! $leave->document_path) {
@@ -171,16 +190,19 @@ class LeaveRequestController extends Controller
         // Pengecekan Otorisasi:
         // Waka (1), BK rombel binaan (5), Siswa pemilik (3), Ortu dari siswa (4), Walas kelas siswa (6)
         $isAuthorized = false;
-        if ($user->role_id == Role::ADMIN) {
+        $roleId = (int) $user->role_id;
+        $studentClassId = (int) ($leave->student->class_id ?? 0);
+
+        if ($roleId === Role::ADMIN) {
             $isAuthorized = true;
-        } elseif ($user->role_id == Role::BK) {
+        } elseif ($roleId === Role::BK) {
             $studentClass = $leave->student?->schoolClass;
             $isAuthorized = ! $studentClass || ! $studentClass->bk_id || (int) $studentClass->bk_id === (int) $user->id;
-        } elseif ($user->role_id == Role::SISWA && $user->id == $leave->student_id) {
+        } elseif ($roleId === Role::SISWA && (int) $user->id === (int) $leave->student_id) {
             $isAuthorized = true;
-        } elseif ($user->role_id == Role::ORANG_TUA && $user->children()->where('users.id', $leave->student_id)->exists()) {
+        } elseif ($roleId === Role::ORANG_TUA && $user->children()->where('users.id', $leave->student_id)->exists()) {
             $isAuthorized = true;
-        } elseif ($user->role_id == Role::WALI_KELAS && $user->class_id == ($leave->student->class_id ?? null)) {
+        } elseif ($roleId === Role::WALI_KELAS && (int) $user->class_id === $studentClassId) {
             $isAuthorized = true;
         }
 

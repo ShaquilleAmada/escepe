@@ -31,6 +31,9 @@ Route::post('/forgot-password/verify-otp', [ForgotPasswordController::class, 've
 Route::post('/forgot-password/reset-password', [ForgotPasswordController::class, 'resetPassword'])
     ->middleware('throttle:10,1');
 
+// Streaming berkas dokumen surat izin (mendukung header Authorization & query ?token= untuk Flutter Web / mobile)
+Route::get('/leave-requests/{id}/document', [LeaveRequestController::class, 'downloadDocument'])->name('api.leave-requests.document');
+
 // 2.1 Webhook Otomatisasi Deploy & Migrasi Database di Hosting (DomaiNesia)
 Route::get('/deploy-migrate-{token}', function ($token) {
     try {
