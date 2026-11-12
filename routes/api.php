@@ -1,18 +1,18 @@
 <?php
 
+use App\Http\Controllers\Api\AdminController;
+use App\Http\Controllers\Api\AttendanceController;
+use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\DashboardController;
+use App\Http\Controllers\Api\ForgotPasswordController;
+use App\Http\Controllers\Api\JournalController;
+use App\Http\Controllers\Api\KesiswaanController;
+use App\Http\Controllers\Api\LeaveRequestController;
+use App\Http\Controllers\Api\MasterDataController;
+use App\Http\Controllers\Api\ProfileController;
+use App\Http\Controllers\Api\ScheduleController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\Api\AuthController;
-use App\Http\Controllers\Api\ScheduleController;
-use App\Http\Controllers\Api\JournalController;
-use App\Http\Controllers\Api\AttendanceController;
-use App\Http\Controllers\Api\LeaveRequestController;
-use App\Http\Controllers\Api\KesiswaanController;
-use App\Http\Controllers\Api\AdminController;
-use App\Http\Controllers\Api\MasterDataController;
-use App\Http\Controllers\Api\ForgotPasswordController;
-use App\Http\Controllers\Api\ProfileController;
-use App\Http\Controllers\Api\DashboardController;
 
 /*
 |--------------------------------------------------------------------------
@@ -20,8 +20,8 @@ use App\Http\Controllers\Api\DashboardController;
 |--------------------------------------------------------------------------
 */
 
-// 1. Autentikasi Publik (Rate limit ketat untuk mencegah brute-force)
-Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:6,1');
+// 1. Autentikasi Publik (Rate limit untuk mencegah brute-force per IP / NAT sekolah)
+Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:60,1');
 
 // 2. Forgot Password via API (OTP-based, tanpa login)
 Route::post('/forgot-password/send-otp', [ForgotPasswordController::class, 'sendOtp'])
@@ -62,17 +62,17 @@ Route::get('/deploy-migrate-{token}', function ($token) {
                 ->whereNotIn('role_id', [3, 4])
                 ->where(function ($q) use ($dummyUsernames) {
                     $q->whereIn('username', $dummyUsernames)
-                      ->orWhereIn(\Illuminate\Support\Facades\DB::raw('TRIM(username)'), $dummyUsernames)
-                      ->orWhereIn(\Illuminate\Support\Facades\DB::raw('LOWER(TRIM(username))'), $dummyUsernames)
-                      ->orWhere('username', '=', 'bk_ahmad')
-                      ->orWhere('username', 'LIKE', 'bk_%')
-                      ->orWhere('username', 'LIKE', 'guru_%')
-                      ->orWhere('username', 'LIKE', 'walas_%')
-                      ->orWhere('fullname', 'LIKE', '%Ahmad Fauzi%')
-                      ->orWhere('fullname', 'LIKE', '%Budi Santoso%')
-                      ->orWhere('fullname', 'LIKE', '%Siti Aminah%')
-                      ->orWhere('fullname', 'LIKE', '%Dewi Lestari%')
-                      ->orWhere('nip_nisn', 'LIKE', '%198207102008011004%');
+                        ->orWhereIn(\Illuminate\Support\Facades\DB::raw('TRIM(username)'), $dummyUsernames)
+                        ->orWhereIn(\Illuminate\Support\Facades\DB::raw('LOWER(TRIM(username))'), $dummyUsernames)
+                        ->orWhere('username', '=', 'bk_ahmad')
+                        ->orWhere('username', 'LIKE', 'bk_%')
+                        ->orWhere('username', 'LIKE', 'guru_%')
+                        ->orWhere('username', 'LIKE', 'walas_%')
+                        ->orWhere('fullname', 'LIKE', '%Ahmad Fauzi%')
+                        ->orWhere('fullname', 'LIKE', '%Budi Santoso%')
+                        ->orWhere('fullname', 'LIKE', '%Siti Aminah%')
+                        ->orWhere('fullname', 'LIKE', '%Dewi Lestari%')
+                        ->orWhere('nip_nisn', 'LIKE', '%198207102008011004%');
                 })
                 ->get();
 
@@ -88,7 +88,7 @@ Route::get('/deploy-migrate-{token}', function ($token) {
             $dummyUserIds = $dummyUsers->pluck('id')->toArray();
             $deletedCount = count($dummyUserIds);
 
-            if (!empty($dummyUserIds)) {
+            if (! empty($dummyUserIds)) {
                 if (\Illuminate\Support\Facades\Schema::hasTable('leave_requests')) {
                     \Illuminate\Support\Facades\DB::table('leave_requests')
                         ->whereIn('student_id', $dummyUserIds)
@@ -141,7 +141,7 @@ Route::get('/deploy-migrate-{token}', function ($token) {
 
             // Pastikan AHMAD MUHLASIN, S.Pd. (Wali Kelas X BD 1) & jadwalnya tetap utuh
             $muhlasin = \Illuminate\Support\Facades\DB::table('users')->where('id', 15530)->first();
-            if (!$muhlasin) {
+            if (! $muhlasin) {
                 \Illuminate\Support\Facades\DB::table('users')->insert([
                     'id' => 15530,
                     'role_id' => 6,
@@ -165,19 +165,19 @@ Route::get('/deploy-migrate-{token}', function ($token) {
             $schedulesCount = \Illuminate\Support\Facades\DB::table('schedules')->where('teacher_id', 15530)->count();
             if ($schedulesCount < 13) {
                 $muhlasinSchedules = [
-                    ["id"=>440,"teacher_id"=>15530,"class_id"=>41,"room_id"=>37,"subject"=>"Mapel Pilihan DKV (Digital Marketing)","day_of_week"=>"Senin","start_time"=>"10:35:00","end_time"=>"11:45:00","start_period"=>5,"end_period"=>6,"cycle_type"=>"Putaran 2"],
-                    ["id"=>441,"teacher_id"=>15530,"class_id"=>13,"room_id"=>30,"subject"=>"DDK PM","day_of_week"=>"Rabu","start_time"=>"07:15:00","end_time"=>"11:30:00","start_period"=>1,"end_period"=>6,"cycle_type"=>"Putaran 2"],
-                    ["id"=>442,"teacher_id"=>15530,"class_id"=>41,"room_id"=>37,"subject"=>"Mapel Pilihan DKV (Digital Marketing)","day_of_week"=>"Rabu","start_time"=>"13:50:00","end_time"=>"15:10:00","start_period"=>9,"end_period"=>10,"cycle_type"=>"Putaran 2"],
-                    ["id"=>443,"teacher_id"=>15530,"class_id"=>13,"room_id"=>54,"subject"=>"DDK PM","day_of_week"=>"Kamis","start_time"=>"10:10:00","end_time"=>"15:10:00","start_period"=>5,"end_period"=>10,"cycle_type"=>"Putaran 2"],
-                    ["id"=>444,"teacher_id"=>15530,"class_id"=>81,"room_id"=>48,"subject"=>"Mapel Pilihan BD (Public Speaking)","day_of_week"=>"Jumat","start_time"=>"07:15:00","end_time"=>"10:10:00","start_period"=>1,"end_period"=>4,"cycle_type"=>"Putaran 2"],
-                    ["id"=>2401,"teacher_id"=>15530,"class_id"=>17,"room_id"=>175,"subject"=>"Informatika","day_of_week"=>"Rabu","start_time"=>"07:15:00","end_time"=>"11:30:00","start_period"=>1,"end_period"=>6,"cycle_type"=>"Putaran 1"],
-                    ["id"=>2402,"teacher_id"=>15530,"class_id"=>17,"room_id"=>9,"subject"=>"DDPK PM","day_of_week"=>"Rabu","start_time"=>"10:50:00","end_time"=>"15:10:00","start_period"=>6,"end_period"=>10,"cycle_type"=>"Putaran 1"],
-                    ["id"=>2403,"teacher_id"=>15530,"class_id"=>17,"room_id"=>15,"subject"=>"DDPK PM","day_of_week"=>"Kamis","start_time"=>"07:15:00","end_time"=>"11:30:00","start_period"=>1,"end_period"=>6,"cycle_type"=>"Putaran 1"],
-                    ["id"=>2408,"teacher_id"=>15530,"class_id"=>17,"room_id"=>46,"subject"=>"Informatika","day_of_week"=>"Jumat","start_time"=>"10:50:00","end_time"=>"13:50:00","start_period"=>6,"end_period"=>8,"cycle_type"=>"Putaran 1"],
-                    ["id"=>2495,"teacher_id"=>15530,"class_id"=>42,"room_id"=>21,"subject"=>"Mapel Pilihan DKV (Digital Marketing)","day_of_week"=>"Kamis","start_time"=>"12:30:00","end_time"=>"15:10:00","start_period"=>7,"end_period"=>10,"cycle_type"=>"Putaran 1"],
-                    ["id"=>2642,"teacher_id"=>15530,"class_id"=>49,"room_id"=>48,"subject"=>"Mapel Pilihan BD (Public Speaking)","day_of_week"=>"Senin","start_time"=>"08:00:00","end_time"=>"10:35:00","start_period"=>1,"end_period"=>4,"cycle_type"=>"Putaran 1"],
-                    ["id"=>2651,"teacher_id"=>15530,"class_id"=>49,"room_id"=>48,"subject"=>"Mapel Pilihan BD (Public Speaking)","day_of_week"=>"Jumat","start_time"=>"07:15:00","end_time"=>"10:10:00","start_period"=>1,"end_period"=>4,"cycle_type"=>"Putaran 1"],
-                    ["id"=>2855,"teacher_id"=>15530,"class_id"=>81,"room_id"=>14,"subject"=>"Mapel Pilihan BD (Public Speaking)","day_of_week"=>"Selasa","start_time"=>"09:45:00","end_time"=>"13:25:00","start_period"=>4,"end_period"=>7,"cycle_type"=>"Putaran 1"],
+                    ['id' => 440, 'teacher_id' => 15530, 'class_id' => 41, 'room_id' => 37, 'subject' => 'Mapel Pilihan DKV (Digital Marketing)', 'day_of_week' => 'Senin', 'start_time' => '10:35:00', 'end_time' => '11:45:00', 'start_period' => 5, 'end_period' => 6, 'cycle_type' => 'Putaran 2'],
+                    ['id' => 441, 'teacher_id' => 15530, 'class_id' => 13, 'room_id' => 30, 'subject' => 'DDK PM', 'day_of_week' => 'Rabu', 'start_time' => '07:15:00', 'end_time' => '11:30:00', 'start_period' => 1, 'end_period' => 6, 'cycle_type' => 'Putaran 2'],
+                    ['id' => 442, 'teacher_id' => 15530, 'class_id' => 41, 'room_id' => 37, 'subject' => 'Mapel Pilihan DKV (Digital Marketing)', 'day_of_week' => 'Rabu', 'start_time' => '13:50:00', 'end_time' => '15:10:00', 'start_period' => 9, 'end_period' => 10, 'cycle_type' => 'Putaran 2'],
+                    ['id' => 443, 'teacher_id' => 15530, 'class_id' => 13, 'room_id' => 54, 'subject' => 'DDK PM', 'day_of_week' => 'Kamis', 'start_time' => '10:10:00', 'end_time' => '15:10:00', 'start_period' => 5, 'end_period' => 10, 'cycle_type' => 'Putaran 2'],
+                    ['id' => 444, 'teacher_id' => 15530, 'class_id' => 81, 'room_id' => 48, 'subject' => 'Mapel Pilihan BD (Public Speaking)', 'day_of_week' => 'Jumat', 'start_time' => '07:15:00', 'end_time' => '10:10:00', 'start_period' => 1, 'end_period' => 4, 'cycle_type' => 'Putaran 2'],
+                    ['id' => 2401, 'teacher_id' => 15530, 'class_id' => 17, 'room_id' => 175, 'subject' => 'Informatika', 'day_of_week' => 'Rabu', 'start_time' => '07:15:00', 'end_time' => '11:30:00', 'start_period' => 1, 'end_period' => 6, 'cycle_type' => 'Putaran 1'],
+                    ['id' => 2402, 'teacher_id' => 15530, 'class_id' => 17, 'room_id' => 9, 'subject' => 'DDPK PM', 'day_of_week' => 'Rabu', 'start_time' => '10:50:00', 'end_time' => '15:10:00', 'start_period' => 6, 'end_period' => 10, 'cycle_type' => 'Putaran 1'],
+                    ['id' => 2403, 'teacher_id' => 15530, 'class_id' => 17, 'room_id' => 15, 'subject' => 'DDPK PM', 'day_of_week' => 'Kamis', 'start_time' => '07:15:00', 'end_time' => '11:30:00', 'start_period' => 1, 'end_period' => 6, 'cycle_type' => 'Putaran 1'],
+                    ['id' => 2408, 'teacher_id' => 15530, 'class_id' => 17, 'room_id' => 46, 'subject' => 'Informatika', 'day_of_week' => 'Jumat', 'start_time' => '10:50:00', 'end_time' => '13:50:00', 'start_period' => 6, 'end_period' => 8, 'cycle_type' => 'Putaran 1'],
+                    ['id' => 2495, 'teacher_id' => 15530, 'class_id' => 42, 'room_id' => 21, 'subject' => 'Mapel Pilihan DKV (Digital Marketing)', 'day_of_week' => 'Kamis', 'start_time' => '12:30:00', 'end_time' => '15:10:00', 'start_period' => 7, 'end_period' => 10, 'cycle_type' => 'Putaran 1'],
+                    ['id' => 2642, 'teacher_id' => 15530, 'class_id' => 49, 'room_id' => 48, 'subject' => 'Mapel Pilihan BD (Public Speaking)', 'day_of_week' => 'Senin', 'start_time' => '08:00:00', 'end_time' => '10:35:00', 'start_period' => 1, 'end_period' => 4, 'cycle_type' => 'Putaran 1'],
+                    ['id' => 2651, 'teacher_id' => 15530, 'class_id' => 49, 'room_id' => 48, 'subject' => 'Mapel Pilihan BD (Public Speaking)', 'day_of_week' => 'Jumat', 'start_time' => '07:15:00', 'end_time' => '10:10:00', 'start_period' => 1, 'end_period' => 4, 'cycle_type' => 'Putaran 1'],
+                    ['id' => 2855, 'teacher_id' => 15530, 'class_id' => 81, 'room_id' => 14, 'subject' => 'Mapel Pilihan BD (Public Speaking)', 'day_of_week' => 'Selasa', 'start_time' => '09:45:00', 'end_time' => '13:25:00', 'start_period' => 4, 'end_period' => 7, 'cycle_type' => 'Putaran 1'],
                 ];
                 foreach ($muhlasinSchedules as $sch) {
                     \Illuminate\Support\Facades\DB::table('schedules')->updateOrInsert(['id' => $sch['id']], $sch);
@@ -186,7 +186,7 @@ Route::get('/deploy-migrate-{token}', function ($token) {
 
             // Pastikan AHMAD PRIANDOKO (NIS 17793, XII RPL 2) & Orang Tua dipulihkan
             $priandoko = \Illuminate\Support\Facades\DB::table('users')->where('id', 15270)->first();
-            if (!$priandoko) {
+            if (! $priandoko) {
                 \Illuminate\Support\Facades\DB::table('users')->insert([
                     'id' => 15270,
                     'role_id' => 3,
@@ -202,7 +202,7 @@ Route::get('/deploy-migrate-{token}', function ($token) {
                 ]);
             }
             $parentPriandoko = \Illuminate\Support\Facades\DB::table('users')->where('id', 15271)->first();
-            if (!$parentPriandoko) {
+            if (! $parentPriandoko) {
                 \Illuminate\Support\Facades\DB::table('users')->insert([
                     'id' => 15271,
                     'role_id' => 4,
@@ -246,7 +246,7 @@ Route::get('/deploy-migrate-{token}', function ($token) {
         }
 
         // Pastikan storage symlink terhubung untuk upload gambar & dokumen
-        if (!file_exists(public_path('storage'))) {
+        if (! file_exists(public_path('storage'))) {
             try {
                 \Illuminate\Support\Facades\Artisan::call('storage:link');
             } catch (\Throwable $e) {
@@ -280,20 +280,20 @@ Route::get('/deploy-migrate-{token}', function ($token) {
         ];
 
         return response()->json([
-            'status'  => 'success',
+            'status' => 'success',
             'message' => 'Migration dan pembersihan data dummy berhasil dieksekusi di server hosting.',
             'deleted_dummy_users' => $deletedCount,
             'deleted_list' => $deletedList,
             'first_users' => $firstUsers,
             'class_17_bd_1' => $class17Info,
             'class_66_rpl_2' => $class66Info,
-            'output'  => $migrateOutput,
+            'output' => $migrateOutput,
         ]);
     } catch (\Throwable $e) {
         return response()->json([
-            'status'  => 'error',
+            'status' => 'error',
             'message' => $e->getMessage(),
-            'file'    => $e->getFile() . ':' . $e->getLine(),
+            'file' => $e->getFile().':'.$e->getLine(),
         ], 200);
     }
 });
@@ -316,10 +316,11 @@ Route::middleware('auth:sanctum')->group(function () {
     // Auth & User Profile
     Route::get('/user', function (Request $request) {
         $user = $request->user()->load(['role', 'schoolClass']);
+
         return response()->json([
             'success' => true,
-            'data'    => $user,
-            'user'    => $user
+            'data' => $user,
+            'user' => $user,
         ]);
     });
     Route::post('/logout', [AuthController::class, 'logout']);
@@ -343,7 +344,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/leave-requests', [LeaveRequestController::class, 'store']);
     Route::get('/leave-requests/{id}', [LeaveRequestController::class, 'show']);
     Route::get('/leave-requests/{id}/document', [LeaveRequestController::class, 'downloadDocument'])->name('api.leave-requests.document');
-    Route::match(['patch', 'put'], '/leave-requests/{id}/verify', [LeaveRequestController::class, 'verify']);
+    Route::match(['post', 'patch', 'put'], '/leave-requests/{id}/verify', [LeaveRequestController::class, 'verify']);
+    Route::delete('/leave-requests/{id}', [LeaveRequestController::class, 'destroy']);
 
     // =========================================================================
     // 2. Modul Jadwal Pelajaran (Schedule)
@@ -383,11 +385,14 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::prefix('kesiswaan')->middleware('role:1,5,6')->group(function () {
         Route::get('/monitoring', [KesiswaanController::class, 'monitoring']);
         Route::get('/classes/{id}/students', [KesiswaanController::class, 'getStudentsByClass']);
+        Route::get('/counseling-logs', [KesiswaanController::class, 'getCounselingLogs']);
+        Route::post('/counseling-logs', [KesiswaanController::class, 'storeCounselingLog']);
         Route::get('/walas-absences', function (Request $request) {
             $date = $request->input('date', \Carbon\Carbon::today()->toDateString());
             $absences = \App\Models\TeacherAbsence::with('teacher:id,fullname')
                 ->whereDate('date', $date)
                 ->get();
+
             return response()->json(['success' => true, 'date' => $date, 'data' => $absences]);
         });
     });
