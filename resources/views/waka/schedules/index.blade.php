@@ -303,15 +303,11 @@ Belum ada jadwal yang sesuai dengan kriteria pencarian.
         <div class="modal-body p-4">
           {{-- Banner Unduh Template Resmi Excel --}}
           <div class="alert alert-primary bg-primary-subtle border-primary-subtle d-flex flex-column flex-sm-row align-items-sm-center justify-content-between p-3 rounded-3 mb-4 gap-2">
-            <div class="d-flex align-items-center gap-2.5">
-              <i class="bi bi-file-earmark-spreadsheet-fill fs-2 text-success"></i>
-              <div>
-                <div class="fw-bold text-dark small">Template Resmi Jadwal FET &amp; SCP (.xlsx)</div>
-                <div class="text-secondary small" style="font-size: 0.78rem;">Format kolom standar sinkron dengan ekspor FET. Dilengkapi master data guru, kelas, dan ruangan di Sheet 2.</div>
-              </div>
+            <div>
+              <div class="fw-bold text-dark small">Template Resmi Jadwal FET &amp; SCP (.xlsx)</div>
+              <div class="text-secondary small" style="font-size: 0.78rem;">Format kolom standar sinkron dengan ekspor FET. Dilengkapi master data guru, kelas, dan ruangan di Sheet 2.</div>
             </div>
-            <a href="{{ route('waka.schedules.template') }}" class="btn btn-sm btn-success px-3 shadow-sm text-nowrap d-inline-flex align-items-center justify-content-center gap-1.5 flex-shrink-0">
-              <i class="bi bi-download"></i>
+            <a href="{{ route('waka.schedules.template') }}" class="btn btn-sm btn-success px-3 shadow-sm text-nowrap d-inline-flex align-items-center justify-content-center flex-shrink-0">
               <span>Unduh Template Excel</span>
             </a>
           </div>
@@ -360,10 +356,7 @@ Belum ada jadwal yang sesuai dengan kriteria pencarian.
             <div class="border border-2 border-dashed rounded-3 p-4 text-center" id="scheduleDropzoneContainer" style="border-color: #cbd5e1 !important; background-color: #fcfdfe; transition: all 0.2s ease;">
               <i class="bi bi-file-earmark-excel display-5 text-success opacity-75 mb-2 d-block"></i>
               <p class="mb-1 fw-semibold text-dark" style="font-size: 0.95rem;">Seret &amp; letakkan file di sini, atau klik untuk memilih file</p>
-              <p class="text-secondary small mb-2" style="font-size: 0.8rem;">Format didukung: <strong>Hanya File Excel (.xlsx, .xls) atau CSV (.csv)</strong> &bull; Maks 10 MB</p>
-              <div class="alert alert-warning py-1 px-3 d-inline-block small mb-3 border-0 text-dark" style="font-size: 0.75rem; border-radius: 6px; background-color: #fef3c7;">
-                <i class="bi bi-exclamation-triangle-fill text-warning me-1"></i> File Word (.docx, .doc) dan PDF (.pdf) tidak diperbolehkan.
-              </div>
+              <p class="text-secondary small mb-3" style="font-size: 0.8rem;">Format didukung: <strong>Hanya File Excel (.xlsx, .xls) atau CSV (.csv)</strong> &bull; Maks 10 MB</p>
               
               <div class="d-block">
                 <input type="file" name="file" id="import_schedule_file_input" class="d-none" accept=".xlsx,.xls,.csv" required onchange="handleScheduleFileSelected(this)">
