@@ -4,11 +4,23 @@
 
 @section('content')
     {{-- Page Title --}}
-    <div class="mb-4">
+    <div class="mb-3">
         <h1 class="fw-bold mb-1 text-dark heading-section" style="font-size: 1.65rem;">Dashboard</h1>
         <p class="text-secondary small mb-0" style="color: #475569 !important; font-size: 0.9rem;">
             Ringkasan pemantauan aktivitas akademik dan status pembelajaran hari ini.
         </p>
+    </div>
+
+    {{-- Filter Pintas: Konsep Tanpa Card & Tanpa Icon (Hanya Teks) --}}
+    <div class="d-flex align-items-center gap-2 flex-wrap mb-4" style="font-size: 0.88rem;">
+        <span class="text-secondary fw-semibold">Filter Pintas:</span>
+        <a href="{{ route('waka.schedules.index', ['today' => 1]) }}" class="text-primary fw-semibold text-decoration-none">
+            Hari Ini Mengajar ({{ $config->active_cycle ?? 'Putaran 1' }})
+        </a>
+        <span class="text-muted">|</span>
+        <a href="{{ route('waka.schedules.index') }}" class="text-secondary text-decoration-none">
+            Semua Jadwal
+        </a>
     </div>
 
     {{-- ============================================================

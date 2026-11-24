@@ -153,17 +153,16 @@
 </form>
 
 <div class="d-flex flex-wrap align-items-center gap-2 mt-3 pt-2.5 border-top">
-  <span class="small fw-semibold text-secondary"><i class="bi bi-lightning-charge text-warning me-1"></i>Filter Pintas:</span>
-  <a href="{{ route('waka.schedules.index', ['today' => 1]) }}" class="btn btn-sm {{ ($todayActive ?? false) ? 'btn-primary' : 'btn-outline-primary' }} rounded-pill px-3 py-1 d-inline-flex align-items-center gap-1.5 shadow-none" title="Filter otomatis hari ini dan siklus aktif">
-    <i class="bi bi-calendar-check{{ ($todayActive ?? false) ? '-fill' : '' }}"></i>
-    <span>Hari Ini Mengajar ({{ $config->active_cycle ?? 'Putaran Aktif' }})</span>
+  <span class="small fw-semibold text-secondary">Filter Pintas:</span>
+  <a href="{{ route('waka.schedules.index', ['today' => 1]) }}" class="text-decoration-none small fw-semibold {{ ($todayActive ?? false) ? 'text-primary text-decoration-underline' : 'text-dark' }}">
+    Hari Ini Mengajar ({{ $config->active_cycle ?? 'Putaran Aktif' }})
   </a>
   @if($todayActive ?? false)
-    <span class="badge bg-success-subtle text-success border border-success-subtle small px-2 py-1">
-      <i class="bi bi-check-circle-fill me-1"></i>Menampilkan Jadwal Hari Ini
-    </span>
-    <a href="{{ route('waka.schedules.index') }}" class="btn btn-sm btn-link text-danger text-decoration-none p-0 ms-2 small">
-      <i class="bi bi-x-circle me-1"></i>Reset ke Semua Jadwal
+    <span class="text-muted small">|</span>
+    <span class="small fw-semibold text-success">Sedang Aktif</span>
+    <span class="text-muted small">|</span>
+    <a href="{{ route('waka.schedules.index') }}" class="small text-danger text-decoration-none">
+      Reset ke Semua Jadwal
     </a>
   @endif
 </div>
