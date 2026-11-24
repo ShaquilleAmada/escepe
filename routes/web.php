@@ -1,17 +1,17 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Web\AuthController;
 use App\Http\Controllers\Web\ForgotPasswordController;
-use App\Http\Controllers\Web\Waka\DashboardController;
-use App\Http\Controllers\Web\Waka\ScheduleController;
-use App\Http\Controllers\Web\Waka\JournalMonitoringController;
 use App\Http\Controllers\Web\Waka\ClassController;
-use App\Http\Controllers\Web\Waka\RoomController;
-use App\Http\Controllers\Web\Waka\SubjectController;
 use App\Http\Controllers\Web\Waka\CycleController;
-use App\Http\Controllers\Web\Waka\UserController;
+use App\Http\Controllers\Web\Waka\DashboardController;
+use App\Http\Controllers\Web\Waka\JournalMonitoringController;
 use App\Http\Controllers\Web\Waka\PromotionController;
+use App\Http\Controllers\Web\Waka\RoomController;
+use App\Http\Controllers\Web\Waka\ScheduleController;
+use App\Http\Controllers\Web\Waka\SubjectController;
+use App\Http\Controllers\Web\Waka\UserController;
+use Illuminate\Support\Facades\Route;
 
 /*
 |--------------------------------------------------------------------------
@@ -24,14 +24,40 @@ Route::get('/', function () {
     if (auth()->check()) {
         return redirect()->route('waka.dashboard');
     }
+
     return view('landing');
 })->name('landing');
+
+// Akses & Unduh Buku Dokumentasi Lengkap Sistem SCP PDF
+Route::get('/dokumentasi', function () {
+    $path = public_path('dokumentasi/DOKUMENTASI_SISTEM_SCP.pdf');
+    if (! file_exists($path)) {
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.system_documentation');
+        $pdf->setPaper('A4', 'portrait');
+        $pdf->save($path);
+    }
+
+    return response()->file($path, [
+        'Content-Type' => 'application/pdf',
+        'Content-Disposition' => 'inline; filename="DOKUMENTASI_SISTEM_SCP.pdf"',
+    ]);
+})->name('dokumentasi.view');
+
+Route::get('/dokumentasi/unduh', function () {
+    $path = public_path('dokumentasi/DOKUMENTASI_SISTEM_SCP.pdf');
+    if (! file_exists($path)) {
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.system_documentation');
+        $pdf->setPaper('A4', 'portrait');
+        $pdf->save($path);
+    }
+
+    return response()->download($path, 'DOKUMENTASI_SISTEM_SCP.pdf');
+})->name('dokumentasi.download');
 
 // Autentikasi Web
 Route::get('/login', [AuthController::class, 'showLoginForm'])->name('login');
 Route::post('/login', [AuthController::class, 'login'])->name('login.post')->middleware('throttle:6,1');
 Route::match(['get', 'post'], '/logout', [AuthController::class, 'logout'])->name('logout');
-
 
 // Lupa Password (Alur 3 Langkah: Email -> Verifikasi OTP -> Reset Password)
 Route::get('/forgot-password', [ForgotPasswordController::class, 'showEmailForm'])
@@ -70,6 +96,8 @@ Route::middleware(['auth', 'waka'])->prefix('waka')->name('waka.')->group(functi
 
     // Monitoring Jurnal Guru
     Route::get('/journals', [JournalMonitoringController::class, 'index'])->name('journals.index');
+    Route::get('/journals/{id}/detail', [JournalMonitoringController::class, 'show'])->name('journals.show');
+    Route::get('/journals/{id}/photo', [JournalMonitoringController::class, 'photo'])->name('journals.photo');
 
     // Master Data Kelas & Ruangan
     Route::post('classes/toggle-walas-absence', [ClassController::class, 'toggleWalasAbsence'])->name('classes.toggle-walas-absence');
@@ -99,5 +127,3 @@ Route::middleware(['auth', 'waka'])->prefix('waka')->name('waka.')->group(functi
     Route::get('attendances/recap', [\App\Http\Controllers\Web\Waka\AttendanceRecapController::class, 'index'])->name('attendances.recap');
     Route::get('attendances/recap/class/{class}', [\App\Http\Controllers\Web\Waka\AttendanceRecapController::class, 'classDetail'])->name('attendances.recap.class');
 });
-
-

@@ -3,9 +3,9 @@
 namespace App\Http\Controllers\Web\Waka;
 
 use App\Http\Controllers\Controller;
-use App\Models\User;
-use App\Models\Role;
 use App\Models\Classes;
+use App\Models\Role;
+use App\Models\User;
 use App\Services\UserImportService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -35,7 +35,7 @@ class UserController extends Controller
                 ELSE 4 END ASC")
             // 4. Urutkan Jurusan menurut Abjad (A-Z) & Rombel (1, 2, ...)
             ->orderBy('classes.major', 'asc')
-            ->orderByRaw("CAST(classes.section AS UNSIGNED) ASC")
+            ->orderByRaw('CAST(classes.section AS UNSIGNED) ASC')
             ->orderBy('classes.class_name', 'asc')
             // 5. Urutkan Nama Pengguna menurut Abjad (A-Z)
             ->orderBy('users.fullname', 'asc');
@@ -45,8 +45,8 @@ class UserController extends Controller
             $search = $request->search;
             $query->where(function ($q) use ($search) {
                 $q->where('users.fullname', 'like', "%{$search}%")
-                  ->orWhere('users.username', 'like', "%{$search}%")
-                  ->orWhere('users.email', 'like', "%{$search}%");
+                    ->orWhere('users.username', 'like', "%{$search}%")
+                    ->orWhere('users.email', 'like', "%{$search}%");
             });
         }
 
@@ -83,7 +83,7 @@ class UserController extends Controller
                 WHEN grade_level = 'XII' OR class_name LIKE 'XII %' THEN 3
                 ELSE 4 END ASC")
             ->orderBy('major', 'asc')
-            ->orderByRaw("CAST(section AS UNSIGNED) ASC")
+            ->orderByRaw('CAST(section AS UNSIGNED) ASC')
             ->orderBy('class_name', 'asc')
             ->get();
         $students = User::where('role_id', 3)->orderBy('fullname')->get();
@@ -108,25 +108,25 @@ class UserController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'fullname'  => 'required|string|max:100',
-            'nip_nisn'  => 'nullable|string|max:30|unique:users,nip_nisn',
-            'username'  => 'nullable|string|max:50|unique:users,username',
-            'email'     => 'nullable|email|max:100|unique:users,email',
-            'password'  => 'required|string|min:6',
-            'role_id'   => 'required|exists:roles,id',
-            'class_id'  => 'nullable|exists:classes,id',
+            'fullname' => 'required|string|max:100',
+            'nip_nisn' => 'nullable|string|max:30|unique:users,nip_nisn',
+            'username' => 'nullable|string|max:50|unique:users,username',
+            'email' => 'nullable|email|max:100|unique:users,email',
+            'password' => 'required|string|min:6',
+            'role_id' => 'required|exists:roles,id',
+            'class_id' => 'nullable|exists:classes,id',
             'parent_id' => 'nullable|exists:users,id',
         ], [
             'fullname.required' => 'Nama lengkap wajib diisi.',
-            'nip_nisn.unique'   => 'NIP/NISN sudah digunakan oleh akun lain.',
-            'nip_nisn.max'      => 'NIP/NISN maksimal 30 karakter.',
-            'username.unique'   => 'Username sudah digunakan oleh akun lain.',
-            'email.email'       => 'Format email tidak valid.',
-            'email.unique'      => 'Email sudah terdaftar pada akun lain.',
+            'nip_nisn.unique' => 'NIP/NISN sudah digunakan oleh akun lain.',
+            'nip_nisn.max' => 'NIP/NISN maksimal 30 karakter.',
+            'username.unique' => 'Username sudah digunakan oleh akun lain.',
+            'email.email' => 'Format email tidak valid.',
+            'email.unique' => 'Email sudah terdaftar pada akun lain.',
             'password.required' => 'Password wajib diisi.',
-            'password.min'      => 'Password minimal harus 6 karakter.',
-            'role_id.required'  => 'Peran/Role wajib dipilih.',
-            'role_id.exists'    => 'Role tidak valid.',
+            'password.min' => 'Password minimal harus 6 karakter.',
+            'role_id.required' => 'Peran/Role wajib dipilih.',
+            'role_id.exists' => 'Role tidak valid.',
         ]);
 
         // Jika username kosong, otomatis generate: nama_pertama_nama_kedua
@@ -143,7 +143,7 @@ class UserController extends Controller
         $validated['password'] = Hash::make($validated['password']);
 
         // Jika bukan siswa atau walas, kosongkan class_id kecuali diisi
-        if (!in_array($validated['role_id'], [3, 6]) && empty($validated['class_id'])) {
+        if (! in_array($validated['role_id'], [3, 6]) && empty($validated['class_id'])) {
             $validated['class_id'] = null;
         }
 
@@ -156,23 +156,23 @@ class UserController extends Controller
 
         // Jika user adalah siswa dan memiliki NIS, otomatis buat / tautkan akun Orang Tua terpisah (P + NIS)
         if ($newUser->role_id == 3) {
-            $studentNis = !empty($newUser->nip_nisn) ? $newUser->nip_nisn : $newUser->username;
-            if (!empty($studentNis)) {
-                $parentUsername = 'P' . $studentNis;
+            $studentNis = ! empty($newUser->nip_nisn) ? $newUser->nip_nisn : $newUser->username;
+            if (! empty($studentNis)) {
+                $parentUsername = 'P'.$studentNis;
                 $parentUser = User::where('username', $parentUsername)->first();
-                if (!$parentUser) {
+                if (! $parentUser) {
                     $parentUser = User::create([
-                        'fullname'  => 'Orang Tua ' . $newUser->fullname,
-                        'username'  => $parentUsername,
-                        'password'  => Hash::make('password123'),
-                        'role_id'   => 4, // OrangTua
+                        'fullname' => 'Orang Tua '.$newUser->fullname,
+                        'username' => $parentUsername,
+                        'password' => Hash::make('password123'),
+                        'role_id' => 4, // OrangTua
                         'parent_id' => $newUser->id,
-                        'class_id'  => $newUser->class_id,
+                        'class_id' => $newUser->class_id,
                     ]);
                 } else {
                     $parentUser->update([
                         'parent_id' => $newUser->id,
-                        'class_id'  => $newUser->class_id,
+                        'class_id' => $newUser->class_id,
                     ]);
                 }
                 $newUser->update(['parent_id' => $parentUser->id]);
@@ -190,25 +190,25 @@ class UserController extends Controller
         $user = User::findOrFail($id);
 
         $validated = $request->validate([
-            'fullname'  => 'required|string|max:100',
-            'nip_nisn'  => 'nullable|string|max:30|unique:users,nip_nisn,' . $user->id,
-            'username'  => 'required|string|max:50|unique:users,username,' . $user->id,
-            'email'     => 'nullable|email|max:100|unique:users,email,' . $user->id,
-            'password'  => 'nullable|string|min:6',
-            'role_id'   => 'required|exists:roles,id',
-            'class_id'  => 'nullable|exists:classes,id',
+            'fullname' => 'required|string|max:100',
+            'nip_nisn' => 'nullable|string|max:30|unique:users,nip_nisn,'.$user->id,
+            'username' => 'required|string|max:50|unique:users,username,'.$user->id,
+            'email' => 'nullable|email|max:100|unique:users,email,'.$user->id,
+            'password' => 'nullable|string|min:6',
+            'role_id' => 'required|exists:roles,id',
+            'class_id' => 'nullable|exists:classes,id',
             'parent_id' => 'nullable|exists:users,id',
         ], [
             'fullname.required' => 'Nama lengkap wajib diisi.',
-            'nip_nisn.unique'   => 'NIP/NISN sudah digunakan oleh akun lain.',
-            'nip_nisn.max'      => 'NIP/NISN maksimal 30 karakter.',
+            'nip_nisn.unique' => 'NIP/NISN sudah digunakan oleh akun lain.',
+            'nip_nisn.max' => 'NIP/NISN maksimal 30 karakter.',
             'username.required' => 'Username wajib diisi.',
-            'username.unique'   => 'Username sudah digunakan oleh akun lain.',
-            'email.email'       => 'Format email tidak valid.',
-            'email.unique'      => 'Email sudah terdaftar pada akun lain.',
-            'password.min'      => 'Password baru minimal harus 6 karakter.',
-            'role_id.required'  => 'Peran/Role wajib dipilih.',
-            'role_id.exists'    => 'Role tidak valid.',
+            'username.unique' => 'Username sudah digunakan oleh akun lain.',
+            'email.email' => 'Format email tidak valid.',
+            'email.unique' => 'Email sudah terdaftar pada akun lain.',
+            'password.min' => 'Password baru minimal harus 6 karakter.',
+            'role_id.required' => 'Peran/Role wajib dipilih.',
+            'role_id.exists' => 'Role tidak valid.',
         ]);
 
         // Normalisasi: jika nip_nisn kosong set null agar unique tidak konflik
@@ -216,13 +216,13 @@ class UserController extends Controller
             $validated['nip_nisn'] = null;
         }
 
-        if (!empty($validated['password'])) {
+        if (! empty($validated['password'])) {
             $validated['password'] = Hash::make($validated['password']);
         } else {
             unset($validated['password']);
         }
 
-        if (!in_array($validated['role_id'], [3, 6]) && empty($validated['class_id'])) {
+        if (! in_array($validated['role_id'], [3, 6]) && empty($validated['class_id'])) {
             $validated['class_id'] = null;
         }
 
@@ -234,23 +234,23 @@ class UserController extends Controller
 
         // Jika user adalah siswa dan memiliki NIS, sinkronkan akun Orang Tua terpisah (P + NIS)
         if ($user->role_id == 3) {
-            $studentNis = !empty($user->nip_nisn) ? $user->nip_nisn : $user->username;
-            if (!empty($studentNis)) {
-                $parentUsername = 'P' . $studentNis;
+            $studentNis = ! empty($user->nip_nisn) ? $user->nip_nisn : $user->username;
+            if (! empty($studentNis)) {
+                $parentUsername = 'P'.$studentNis;
                 $parentUser = User::where('username', $parentUsername)->first();
-                if (!$parentUser) {
+                if (! $parentUser) {
                     $parentUser = User::create([
-                        'fullname'  => 'Orang Tua ' . $user->fullname,
-                        'username'  => $parentUsername,
-                        'password'  => Hash::make('password123'),
-                        'role_id'   => 4, // OrangTua
+                        'fullname' => 'Orang Tua '.$user->fullname,
+                        'username' => $parentUsername,
+                        'password' => Hash::make('password123'),
+                        'role_id' => 4, // OrangTua
                         'parent_id' => $user->id,
-                        'class_id'  => $user->class_id,
+                        'class_id' => $user->class_id,
                     ]);
                 } else {
                     $parentUser->update([
                         'parent_id' => $user->id,
-                        'class_id'  => $user->class_id,
+                        'class_id' => $user->class_id,
                     ]);
                 }
                 $user->update(['parent_id' => $parentUser->id]);
@@ -307,8 +307,8 @@ class UserController extends Controller
             'file' => 'required|file|mimes:xlsx,xls,csv,docx,pdf|max:10240',
         ], [
             'file.required' => 'Silakan pilih file yang ingin diimpor.',
-            'file.mimes'    => 'Format file tidak didukung! Harap unggah file berekstensi Excel (.xlsx, .xls, .csv), Word (.docx), atau PDF (.pdf).',
-            'file.max'      => 'Ukuran file melebihi batas maksimum (10 MB).',
+            'file.mimes' => 'Format file tidak didukung! Harap unggah file berekstensi Excel (.xlsx, .xls, .csv), Word (.docx), atau PDF (.pdf).',
+            'file.max' => 'Ukuran file melebihi batas maksimum (10 MB).',
         ]);
 
         try {
@@ -320,7 +320,7 @@ class UserController extends Controller
                 $message .= " Dilewati: {$result['skipped']}.";
             }
 
-            if (!empty($result['errors'])) {
+            if (! empty($result['errors'])) {
                 return redirect()->route('waka.users.index')
                     ->with('warning', $message)
                     ->with('import_errors', $result['errors']);
@@ -328,8 +328,7 @@ class UserController extends Controller
 
             return redirect()->route('waka.users.index')->with('success', $message);
         } catch (\Throwable $e) {
-            return redirect()->route('waka.users.index')->with('error', 'Gagal memproses file impor: ' . $e->getMessage());
+            return redirect()->route('waka.users.index')->with('error', 'Gagal memproses file impor: '.$e->getMessage());
         }
     }
 }
-

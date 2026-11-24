@@ -21,7 +21,7 @@ class EnsureUserHasRole
     {
         $user = $request->user();
 
-        if (!$user) {
+        if (! $user) {
             return response()->json([
                 'success' => false,
                 'message' => 'Anda belum login atau token tidak valid.',
@@ -31,7 +31,7 @@ class EnsureUserHasRole
         // Konversi semua role ke integer untuk perbandingan
         $allowedRoles = array_map('intval', $roles);
 
-        if (!in_array((int) $user->role_id, $allowedRoles)) {
+        if (! in_array((int) $user->role_id, $allowedRoles)) {
             return response()->json([
                 'success' => false,
                 'message' => 'Akses ditolak. Anda tidak memiliki wewenang untuk mengakses endpoint ini.',

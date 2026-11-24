@@ -6,16 +6,15 @@ use App\Models\Classes;
 use App\Models\Room;
 use App\Models\Schedule;
 use App\Models\User;
+use App\Services\Pdf\CustomPdfParser as PdfParser;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Str;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Style\Alignment;
 use PhpOffice\PhpSpreadsheet\Style\Border;
 use PhpOffice\PhpSpreadsheet\Style\Fill;
-use App\Services\Pdf\CustomPdfParser as PdfParser;
 
 class ScheduleImportService
 {
@@ -59,6 +58,7 @@ class ScheduleImportService
     {
         $spreadsheet = IOFactory::load($filePath);
         $sheet = $spreadsheet->getActiveSheet();
+
         return $sheet->toArray(null, true, true, false);
     }
 
@@ -67,7 +67,7 @@ class ScheduleImportService
      */
     protected function parseDocx(string $filePath): array
     {
-        $zip = new \ZipArchive();
+        $zip = new \ZipArchive;
         if ($zip->open($filePath) !== true) {
             throw new \Exception('Gagal membuka file Word (.docx). File mungkin korup atau diproteksi.');
         }
@@ -75,11 +75,11 @@ class ScheduleImportService
         $xml = $zip->getFromName('word/document.xml');
         $zip->close();
 
-        if (!$xml) {
+        if (! $xml) {
             throw new \Exception('File .docx tidak berisi struktur dokumen XML yang valid.');
         }
 
-        $dom = new \DOMDocument();
+        $dom = new \DOMDocument;
         libxml_use_internal_errors(true);
         $dom->loadXML($xml);
         libxml_clear_errors();
@@ -96,7 +96,7 @@ class ScheduleImportService
                     foreach ($tcList as $tc) {
                         $row[] = trim($tc->textContent);
                     }
-                    if (!empty(array_filter($row, fn($c) => $c !== ''))) {
+                    if (! empty(array_filter($row, fn ($c) => $c !== ''))) {
                         $rows[] = $row;
                     }
                 }
@@ -105,14 +105,15 @@ class ScheduleImportService
             $paragraphs = $dom->getElementsByTagName('p');
             foreach ($paragraphs as $p) {
                 $text = trim($p->textContent);
-                if (empty($text))
+                if (empty($text)) {
                     continue;
+                }
 
                 if (str_contains($text, "\t")) {
                     $rows[] = array_map('trim', explode("\t", $text));
-                } elseif (str_contains($text, "|")) {
-                    $rows[] = array_map('trim', array_filter(explode("|", $text), fn($val) => trim($val) !== ''));
-                } elseif (str_contains($text, ",")) {
+                } elseif (str_contains($text, '|')) {
+                    $rows[] = array_map('trim', array_filter(explode('|', $text), fn ($val) => trim($val) !== ''));
+                } elseif (str_contains($text, ',')) {
                     $rows[] = str_getcsv($text);
                 }
             }
@@ -126,7 +127,7 @@ class ScheduleImportService
      */
     protected function parsePdf(string $filePath, string $originalName = '', ?string $cycleOverride = null): array
     {
-        $parser = new PdfParser();
+        $parser = new PdfParser;
         $pdf = $parser->parseFile($filePath);
 
         if ($this->isFetTimetable($pdf)) {
@@ -139,13 +140,14 @@ class ScheduleImportService
 
         foreach ($lines as $line) {
             $line = trim($line);
-            if (empty($line))
+            if (empty($line)) {
                 continue;
+            }
 
             if (str_contains($line, "\t")) {
                 $cols = array_map('trim', explode("\t", $line));
-            } elseif (str_contains($line, "|")) {
-                $cols = array_map('trim', array_filter(explode("|", $line), fn($val) => trim($val) !== ''));
+            } elseif (str_contains($line, '|')) {
+                $cols = array_map('trim', array_filter(explode('|', $line), fn ($val) => trim($val) !== ''));
             } else {
                 $cols = preg_split('/\s{2,}/', $line);
             }
@@ -164,13 +166,14 @@ class ScheduleImportService
     protected function isFetTimetable($pdf): bool
     {
         $pages = $pdf->getPages();
-        if (empty($pages))
+        if (empty($pages)) {
             return false;
+        }
 
         $sample = '';
         for ($i = 0; $i < min(10, count($pages)); $i++) {
             try {
-                $sample .= ' ' . $pages[$i]->getText();
+                $sample .= ' '.$pages[$i]->getText();
             } catch (\Throwable $e) {
             }
         }
@@ -187,13 +190,15 @@ class ScheduleImportService
     protected function isFetClassTimetable($pdf, $classes): bool
     {
         $pages = $pdf->getPages();
-        if (count($pages) < 2)
+        if (count($pages) < 2) {
             return false;
+        }
 
         $page2 = $pages[1];
         $dataTm = $page2->getDataTm();
-        if (empty($dataTm))
+        if (empty($dataTm)) {
             return false;
+        }
 
         foreach ($dataTm as $it) {
             $y = round($it[0][5], 0);
@@ -216,7 +221,7 @@ class ScheduleImportService
     {
         // 1. Tentukan Siklus / Putaran (Override form request > Deteksi dari nama file > Default)
         $cycle = 'semua';
-        if (!empty($cycleOverride) && in_array(strtolower($cycleOverride), ['putaran 1', 'putaran 2', 'semua'])) {
+        if (! empty($cycleOverride) && in_array(strtolower($cycleOverride), ['putaran 1', 'putaran 2', 'semua'])) {
             $cycle = strtolower($cycleOverride) === 'semua' ? 'semua' : ucwords(strtolower($cycleOverride));
         } elseif (preg_match('/put[_\s-]*2|putaran[_\s-]*2|genap/i', $originalName)) {
             $cycle = 'Putaran 2';
@@ -276,13 +281,15 @@ class ScheduleImportService
         ];
 
         $rows = [
-            ['Hari', 'Waktu', 'Mata Pelajaran', 'Guru Pengampu', 'Kelas', 'Ruangan', 'Siklus']
+            ['Hari', 'Waktu', 'Mata Pelajaran', 'Guru Pengampu', 'Kelas', 'Ruangan', 'Siklus'],
         ];
 
         for ($p = 1; $p < count($pages); $p++) {
             $page = $pages[$p];
             $dataTm = $page->getDataTm();
-            if (empty($dataTm)) continue;
+            if (empty($dataTm)) {
+                continue;
+            }
 
             // 1. Identifikasi nama rombel / kelas dari kop halaman
             $matchedClass = null;
@@ -296,7 +303,9 @@ class ScheduleImportService
                     }
                 }
             }
-            if (!$matchedClass) continue;
+            if (! $matchedClass) {
+                continue;
+            }
             $className = $matchedClass->class_name;
 
             // 2. Deteksi slot aktif vs kosong (--- / -x-)
@@ -332,9 +341,15 @@ class ScheduleImportService
                 $x = round($item[0][4], 1);
                 $y = round($item[0][5], 1);
                 $t = trim($item[1]);
-                if ($t === '' || $t === '---' || $t === '-x-') continue;
-                if (in_array($t, ['SMK NEGERI 1 BANTUL', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Kembali ke atas'])) continue;
-                if (str_contains($t, 'Jadwal dihasilkan') || str_contains($t, 'FET') || $y > 760 || $x < 60 || $y < 50) continue;
+                if ($t === '' || $t === '---' || $t === '-x-') {
+                    continue;
+                }
+                if (in_array($t, ['SMK NEGERI 1 BANTUL', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Kembali ke atas'])) {
+                    continue;
+                }
+                if (str_contains($t, 'Jadwal dihasilkan') || str_contains($t, 'FET') || $y > 760 || $x < 60 || $y < 50) {
+                    continue;
+                }
 
                 foreach ($colBounds as $day => $b) {
                     if ($x >= $b[0] && $x < $b[1]) {
@@ -347,7 +362,9 @@ class ScheduleImportService
             // 4. Proses per hari
             foreach (array_keys($colBounds) as $day) {
                 $cItems = $dayItems[$day] ?? [];
-                if (empty($cItems)) continue;
+                if (empty($cItems)) {
+                    continue;
+                }
 
                 // Kelompokkan item teks menjadi baris berdasarkan koordinat Y
                 $lines = [];
@@ -361,9 +378,11 @@ class ScheduleImportService
                         }
                     }
                     unset($ln);
-                    if (!$found) $lines[] = ['y' => $it['y'], 'items' => [$it]];
+                    if (! $found) {
+                        $lines[] = ['y' => $it['y'], 'items' => [$it]];
+                    }
                 }
-                usort($lines, fn($a, $b) => $b['y'] <=> $a['y']);
+                usort($lines, fn ($a, $b) => $b['y'] <=> $a['y']);
 
                 // Bentuk kluster sesi pelajaran
                 $lessons = [];
@@ -371,20 +390,24 @@ class ScheduleImportService
                 $inTeacher = false;
 
                 foreach ($lines as $ln) {
-                    usort($ln['items'], fn($a, $b) => $a['x'] <=> $b['x']);
+                    usort($ln['items'], fn ($a, $b) => $a['x'] <=> $b['x']);
                     $txt = trim(implode('', array_column($ln['items'], 'text')));
-                    if ($txt === '---' || $txt === '-x-' || $txt === '"' || $txt === "''" || $txt === '') continue;
-                    if (str_contains($txt, 'Jadwal dihasilkan') || str_contains($txt, 'FET')) continue;
+                    if ($txt === '---' || $txt === '-x-' || $txt === '"' || $txt === "''" || $txt === '') {
+                        continue;
+                    }
+                    if (str_contains($txt, 'Jadwal dihasilkan') || str_contains($txt, 'FET')) {
+                        continue;
+                    }
 
                     $gap = $curLesson ? ($curLesson['last_y'] - $ln['y']) : 0;
 
                     if (preg_match('/^"?\d+([\.,\s]|[A-Z])/', $txt)) {
                         $inTeacher = true;
-                        if ($curLesson && !empty($curLesson['teacher_lines']) && $gap > 20) {
+                        if ($curLesson && ! empty($curLesson['teacher_lines']) && $gap > 20) {
                             $lessons[] = $curLesson;
                             $curLesson = null;
                         }
-                        if (!$curLesson) {
+                        if (! $curLesson) {
                             $curLesson = ['top_y' => $ln['y'], 'last_y' => $ln['y'], 'subj_lines' => [], 'teacher_lines' => [$txt], 'room' => null];
                         } else {
                             $curLesson['teacher_lines'][] = $txt;
@@ -393,6 +416,7 @@ class ScheduleImportService
                         if (str_ends_with($txt, '"') || preg_match('/(S\.Pd|M\.Pd|S\.Kom|MM|S\.Pd\.I|S\.Pd\.Si|S\.T|S\.S)\.?\"?$/i', $txt)) {
                             $inTeacher = false;
                         }
+
                         continue;
                     }
 
@@ -402,21 +426,23 @@ class ScheduleImportService
                         if (str_ends_with($txt, '"') || preg_match('/(S\.Pd|M\.Pd|S\.Kom|MM|S\.Pd\.I|S\.Pd\.Si|S\.T|S\.S)\.?\"?$/i', $txt)) {
                             $inTeacher = false;
                         }
+
                         continue;
                     }
 
                     if (preg_match('/^(LAB\s*\d+|LAB\s*[A-Z0-9]+|OR\s*\d+|R\.\s*\d+|Ruang\s*\d+)/i', $txt)) {
                         $curLesson['room'] = $txt;
                         $curLesson['last_y'] = $ln['y'];
+
                         continue;
                     }
 
-                    if ($curLesson && (!empty($curLesson['teacher_lines']) || $gap > 20)) {
+                    if ($curLesson && (! empty($curLesson['teacher_lines']) || $gap > 20)) {
                         $lessons[] = $curLesson;
                         $curLesson = null;
                     }
 
-                    if (!$curLesson) {
+                    if (! $curLesson) {
                         $curLesson = [
                             'top_y' => $ln['y'],
                             'last_y' => $ln['y'],
@@ -429,13 +455,19 @@ class ScheduleImportService
                         $curLesson['last_y'] = $ln['y'];
                     }
                 }
-                if ($curLesson) $lessons[] = $curLesson;
+                if ($curLesson) {
+                    $lessons[] = $curLesson;
+                }
 
                 $occupiedSlots = [];
                 for ($s = 0; $s < 10; $s++) {
-                    if ($slotOccupied[$day][$s]) $occupiedSlots[] = $s;
+                    if ($slotOccupied[$day][$s]) {
+                        $occupiedSlots[] = $s;
+                    }
                 }
-                if (empty($occupiedSlots) || empty($lessons)) continue;
+                if (empty($occupiedSlots) || empty($lessons)) {
+                    continue;
+                }
 
                 // Kelompokkan slot terisi menjadi rentang kontigu
                 $segments = [];
@@ -456,8 +488,10 @@ class ScheduleImportService
                     $topY = $slotY[$segStartSlot] + 24;
                     $botY = $slotY[$segEndSlot] - 24;
 
-                    $segLessons = array_filter($lessons, fn($l) => $l['top_y'] <= $topY && $l['last_y'] >= $botY - 20);
-                    if (empty($segLessons)) continue;
+                    $segLessons = array_filter($lessons, fn ($l) => $l['top_y'] <= $topY && $l['last_y'] >= $botY - 20);
+                    if (empty($segLessons)) {
+                        continue;
+                    }
                     $segLessons = array_values($segLessons);
 
                     $clusterSlots = array_fill(0, count($segLessons), []);
@@ -477,7 +511,9 @@ class ScheduleImportService
 
                     foreach ($segLessons as $cIdx => $l) {
                         $cSlots = $clusterSlots[$cIdx] ?? [];
-                        if (empty($cSlots)) continue;
+                        if (empty($cSlots)) {
+                            continue;
+                        }
                         $cStart = min($cSlots);
                         $cEnd = max($cSlots);
 
@@ -485,17 +521,23 @@ class ScheduleImportService
                         $rawEnd = $slotDefs[$cEnd]['end'];
                         $snappedStart = $this->snapTimeToDailyPeriod($rawStart, $day, 'start');
                         $snappedEnd = $this->snapTimeToDailyPeriod($rawEnd, $day, 'end');
-                        $time = $snappedStart . ' - ' . $snappedEnd;
+                        $time = $snappedStart.' - '.$snappedEnd;
 
                         $subj = trim(implode(' ', $l['subj_lines']));
                         $rawT = trim(implode(' ', $l['teacher_lines']), "\" \t\n\r");
                         $cleanT = preg_replace('/^\d+[\.,\s]*/', '', $rawT);
                         $cleanT = trim($cleanT, "\" \t\n\r");
-                        $rm = $l['room'] ?? ('Ruang ' . $className);
+                        $rm = $l['room'] ?? ('Ruang '.$className);
 
-                        if (empty($subj) && empty($cleanT)) continue;
-                        if (empty($subj)) $subj = 'Mata Pelajaran';
-                        if (empty($cleanT)) $cleanT = 'Guru Pengampu';
+                        if (empty($subj) && empty($cleanT)) {
+                            continue;
+                        }
+                        if (empty($subj)) {
+                            $subj = 'Mata Pelajaran';
+                        }
+                        if (empty($cleanT)) {
+                            $cleanT = 'Guru Pengampu';
+                        }
 
                         $rows[] = [
                             $day,
@@ -504,7 +546,7 @@ class ScheduleImportService
                             $cleanT,
                             $className,
                             $rm,
-                            $cycle
+                            $cycle,
                         ];
                     }
                 }
@@ -522,14 +564,15 @@ class ScheduleImportService
         $pages = $pdf->getPages();
         $daysOrder = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat'];
         $rows = [
-            ['Hari', 'Waktu', 'Mata Pelajaran', 'Guru Pengampu', 'Kelas', 'Ruangan', 'Siklus']
+            ['Hari', 'Waktu', 'Mata Pelajaran', 'Guru Pengampu', 'Kelas', 'Ruangan', 'Siklus'],
         ];
 
         for ($p = 2; $p < count($pages); $p++) {
             $page = $pages[$p];
             $dataTm = $page->getDataTm();
-            if (empty($dataTm))
+            if (empty($dataTm)) {
                 continue;
+            }
 
             $linesByY = [];
             foreach ($dataTm as $item) {
@@ -542,7 +585,7 @@ class ScheduleImportService
             $dayPositions = [];
 
             foreach ($linesByY as $y => $items) {
-                usort($items, fn($a, $b) => $a['x'] <=> $b['x']);
+                usort($items, fn ($a, $b) => $a['x'] <=> $b['x']);
                 $lineText = trim(implode('', array_column($items, 'text')));
 
                 if (
@@ -556,10 +599,10 @@ class ScheduleImportService
                     continue;
                 }
 
-                if (!$teacherName && preg_match('/"?(\d+([\.,\s]|[A-Z])[^"]+)"?/', $lineText, $m)) {
+                if (! $teacherName && preg_match('/"?(\d+([\.,\s]|[A-Z])[^"]+)"?/', $lineText, $m)) {
                     $rawT = trim($m[1], "\" \t\n\r");
                     $candT = preg_replace('/^\d+[\.,\s]*/', '', $rawT);
-                    if (!preg_match('/(dihasilkan|pada\s+\d|FET|\.org)/i', $candT)) {
+                    if (! preg_match('/(dihasilkan|pada\s+\d|FET|\.org)/i', $candT)) {
                         $teacherName = $candT;
                     }
                 }
@@ -572,8 +615,9 @@ class ScheduleImportService
                 }
             }
 
-            if (!$teacherName || count($dayPositions) < 5)
+            if (! $teacherName || count($dayPositions) < 5) {
                 continue;
+            }
 
             asort($dayPositions);
             $dayKeys = array_keys($dayPositions);
@@ -591,7 +635,7 @@ class ScheduleImportService
                 $x = round($item[0][4], 1);
                 $y = round($item[0][5], 1);
                 $t = trim($item[1]);
-                if ($x < 150 && $y < -5000 && !str_contains($t, 'Kembali')) {
+                if ($x < 150 && $y < -5000 && ! str_contains($t, 'Kembali')) {
                     $timeItems[] = ['y' => $y, 'text' => $t];
                 }
             }
@@ -607,11 +651,11 @@ class ScheduleImportService
                     }
                 }
                 unset($gt);
-                if (!$found) {
+                if (! $found) {
                     $groupedTimes[] = ['y' => $ti['y'], 'text' => $ti['text']];
                 }
             }
-            usort($groupedTimes, fn($a, $b) => $b['y'] <=> $a['y']);
+            usort($groupedTimes, fn ($a, $b) => $b['y'] <=> $a['y']);
 
             $slotY = [];
             foreach ($groupedTimes as $idx => $gt) {
@@ -620,8 +664,9 @@ class ScheduleImportService
                 }
             }
 
-            if (count($slotY) < 8)
+            if (count($slotY) < 8) {
                 continue;
+            }
 
             $slotOccupied = [];
             foreach ($daysOrder as $day) {
@@ -654,16 +699,21 @@ class ScheduleImportService
                 $x = round($item[0][4], 1);
                 $y = round($item[0][5], 1);
                 $t = trim($item[1]);
-                if ($t === '' || $t === '---' || $t === '-x-')
+                if ($t === '' || $t === '---' || $t === '-x-') {
                     continue;
-                if (in_array($t, ['SMK NEGERI 1 BANTUL', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Kembali ke atas']))
+                }
+                if (in_array($t, ['SMK NEGERI 1 BANTUL', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Kembali ke atas'])) {
                     continue;
-                if (str_contains($t, 'Jadwal dihasilkan') || str_contains($t, '5.44.9'))
+                }
+                if (str_contains($t, 'Jadwal dihasilkan') || str_contains($t, '5.44.9')) {
                     continue;
-                if ($x < 150)
+                }
+                if ($x < 150) {
                     continue;
-                if ($y > $slotY[0] + 20)
+                }
+                if ($y > $slotY[0] + 20) {
                     continue;
+                }
 
                 foreach ($colBounds as $day => $b) {
                     if ($x >= $b['minX'] && $x < $b['maxX']) {
@@ -680,8 +730,9 @@ class ScheduleImportService
                         $occupiedSlots[] = $s;
                     }
                 }
-                if (empty($occupiedSlots))
+                if (empty($occupiedSlots)) {
                     continue;
+                }
 
                 $segments = [];
                 $currentSeg = [$occupiedSlots[0]];
@@ -703,9 +754,10 @@ class ScheduleImportService
                     $topY = $slotY[$segStartSlot] + 24;
                     $botY = $slotY[$segEndSlot] - 24;
 
-                    $segItems = array_filter($itemsThisDay, fn($it) => $it['y'] <= $topY && $it['y'] >= $botY);
-                    if (empty($segItems))
+                    $segItems = array_filter($itemsThisDay, fn ($it) => $it['y'] <= $topY && $it['y'] >= $botY);
+                    if (empty($segItems)) {
                         continue;
+                    }
 
                     $lines = [];
                     foreach ($segItems as $it) {
@@ -718,15 +770,15 @@ class ScheduleImportService
                             }
                         }
                         unset($ln);
-                        if (!$found) {
+                        if (! $found) {
                             $lines[] = ['y' => $it['y'], 'items' => [$it]];
                         }
                     }
-                    usort($lines, fn($a, $b) => $b['y'] <=> $a['y']);
+                    usort($lines, fn ($a, $b) => $b['y'] <=> $a['y']);
 
                     $textLines = [];
                     foreach ($lines as $ln) {
-                        usort($ln['items'], fn($a, $b) => $a['x'] <=> $b['x']);
+                        usort($ln['items'], fn ($a, $b) => $a['x'] <=> $b['x']);
                         $lineStr = trim(implode('', array_column($ln['items'], 'text')));
                         $textLines[] = ['y' => $ln['y'], 'text' => $lineStr];
                     }
@@ -737,12 +789,13 @@ class ScheduleImportService
                     foreach ($textLines as $tl) {
                         $matchedClass = $this->matchClass($tl['text'], $classes);
                         if ($matchedClass) {
-                            if ($currentCluster)
+                            if ($currentCluster) {
                                 $lessonClusters[] = $currentCluster;
+                            }
                             $currentCluster = [
                                 'class' => $matchedClass->class_name,
                                 'y' => $tl['y'],
-                                'lines' => [$tl['text']]
+                                'lines' => [$tl['text']],
                             ];
                         } else {
                             if ($currentCluster) {
@@ -751,21 +804,24 @@ class ScheduleImportService
                                 $currentCluster = [
                                     'class' => null,
                                     'y' => $tl['y'],
-                                    'lines' => [$tl['text']]
+                                    'lines' => [$tl['text']],
                                 ];
                             }
                         }
                     }
-                    if ($currentCluster)
+                    if ($currentCluster) {
                         $lessonClusters[] = $currentCluster;
-                    if (empty($lessonClusters))
+                    }
+                    if (empty($lessonClusters)) {
                         continue;
+                    }
 
                     if (count($lessonClusters) === 1) {
                         $c = $lessonClusters[0];
                         $rec = $this->formatClusterRecord($teacherName, $day, $segStartSlot, $segEndSlot, $c, $slotDefs, $cycle);
-                        if ($rec)
+                        if ($rec) {
                             $rows[] = $rec;
+                        }
                     } else {
                         $clusterSlots = array_fill(0, count($lessonClusters), []);
                         foreach ($seg as $slotIdx) {
@@ -784,13 +840,15 @@ class ScheduleImportService
 
                         foreach ($lessonClusters as $cIdx => $c) {
                             $cSlots = $clusterSlots[$cIdx] ?? [];
-                            if (empty($cSlots))
+                            if (empty($cSlots)) {
                                 continue;
+                            }
                             $cStart = min($cSlots);
                             $cEnd = max($cSlots);
                             $rec = $this->formatClusterRecord($teacherName, $day, $cStart, $cEnd, $c, $slotDefs, $cycle);
-                            if ($rec)
+                            if ($rec) {
                                 $rows[] = $rec;
+                            }
                         }
                     }
                 }
@@ -817,7 +875,7 @@ class ScheduleImportService
 
         // 2. AK -> AKL check (contoh: X AK1 -> X AKL 1)
         if (preg_match('/(x|xi|xii)ak(\d+)/i', $cleanText, $m)) {
-            $aklName = strtoupper($m[1]) . ' AKL ' . $m[2];
+            $aklName = strtoupper($m[1]).' AKL '.$m[2];
             foreach ($classes as $c) {
                 if (str_replace(' ', '', strtolower($c->class_name)) === strtolower(str_replace(' ', '', $aklName))) {
                     return $c;
@@ -827,7 +885,7 @@ class ScheduleImportService
 
         // 3. Kelas tanpa nomor rombel (contoh: XII LPS -> XII LPS 1, X BD -> X BD 1)
         if (preg_match('/^(x|xi|xii)(lps|bd)$/i', $cleanText, $m)) {
-            $candidate = strtoupper($m[1]) . ' ' . strtoupper($m[2]) . ' 1';
+            $candidate = strtoupper($m[1]).' '.strtoupper($m[2]).' 1';
             foreach ($classes as $c) {
                 if (str_replace(' ', '', strtolower($c->class_name)) === strtolower(str_replace(' ', '', $candidate))) {
                     return $c;
@@ -853,8 +911,8 @@ class ScheduleImportService
             if ($className) {
                 // 1. Hapus nama kelas penuh (contoh: 'X TKJ 2')
                 $cleanNoSpace = str_replace(' ', '', $className);
-                $clean = preg_replace('/\b' . preg_quote($className, '/') . '\b/i', '', $clean);
-                $clean = preg_replace('/\b' . preg_quote($cleanNoSpace, '/') . '\b/i', '', $clean);
+                $clean = preg_replace('/\b'.preg_quote($className, '/').'\b/i', '', $clean);
+                $clean = preg_replace('/\b'.preg_quote($cleanNoSpace, '/').'\b/i', '', $clean);
                 // 2. Hapus prefix kode jurusan di awal mapel (contoh: 'TKJ2 Bahasa Inggris' → 'Bahasa Inggris')
                 //    Format: [Tingkat?][JurusanSingkat][Nomor] diikuti spasi (mis: TKJ2, AK3, DKV1, RPL2)
                 $clean = preg_replace('/^(?:X{1,3}I?I?)?(?:\s+)?[A-Z]{2,4}\d\s+/i', '', $clean);
@@ -867,8 +925,8 @@ class ScheduleImportService
             }
         }
 
-        $room = 'Ruang ' . ($className ?: 'Kelas');
-        if (!empty($filtered)) {
+        $room = 'Ruang '.($className ?: 'Kelas');
+        if (! empty($filtered)) {
             $last = end($filtered);
             if (preg_match('/^(LAB\s*\d+|LAB\s*[A-Z0-9]+|OR\s*\d+|R\.\s*\d+|Ruang\s*\d+)/i', $last, $rm)) {
                 $room = $rm[0];
@@ -887,15 +945,16 @@ class ScheduleImportService
         // 4. [Tingkat] [Jurusan] [Nomor] (contoh: "X BD 1 ", "XI AKL 2 ")
         $subject = preg_replace('/^(?:X|XI|XII)\s+(?:RPL|TKJ|DKV|BR|BD|LPS|AKL|AK|MP)\s*\d+\s+/i', '', $subject);
         $subject = trim($subject);
-        if (empty($subject))
+        if (empty($subject)) {
             $subject = 'Mata Pelajaran';
+        }
 
         // Snap waktu dari slot PDF FET ke DAILY_PERIODS yang benar untuk hari ini
         $rawStart = $slotDefs[$startSlot]['start'];
         $rawEnd = $slotDefs[$endSlot]['end'];
         $snappedStart = $this->snapTimeToDailyPeriod($rawStart, $day, 'start');
         $snappedEnd = $this->snapTimeToDailyPeriod($rawEnd, $day, 'end');
-        $timeRange = $snappedStart . ' - ' . $snappedEnd;
+        $timeRange = $snappedStart.' - '.$snappedEnd;
 
         return [
             $day,
@@ -904,7 +963,7 @@ class ScheduleImportService
             $teacher,
             $className ?: 'Umum',
             $room,
-            $cycle
+            $cycle,
         ];
     }
 
@@ -919,9 +978,9 @@ class ScheduleImportService
      * - SENIN: Jam pertama mulai 08:00 (ada upacara bendera). Slot FET 07:15 → dipaksa 08:00.
      * - JUMAT: Sesi terakhir sebelum shalat Jumat berakhir 11:25. Slot FET 12:00 → dipaksa 11:25.
      *
-     * @param string $time  Waktu dalam format 'HH:MM'
-     * @param string $day   Hari (Senin, Selasa, Rabu, Kamis, Jumat)
-     * @param string $type  'start' atau 'end' — snap ke jam mulai atau jam selesai periode
+     * @param  string  $time  Waktu dalam format 'HH:MM'
+     * @param  string  $day  Hari (Senin, Selasa, Rabu, Kamis, Jumat)
+     * @param  string  $type  'start' atau 'end' — snap ke jam mulai atau jam selesai periode
      */
     protected function snapTimeToDailyPeriod(string $time, string $day, string $type = 'start'): string
     {
@@ -939,11 +998,13 @@ class ScheduleImportService
         }
 
         $periods = Schedule::DAILY_PERIODS[$day] ?? [];
-        if (empty($periods))
+        if (empty($periods)) {
             return $time;
+        }
 
         $toMin = function (string $t): int {
             [$h, $m] = explode(':', $t);
+
             return (int) $h * 60 + (int) $m;
         };
 
@@ -983,10 +1044,11 @@ class ScheduleImportService
 
         // Cari baris header tabel
         foreach ($rawRows as $idx => $row) {
-            if (!is_array($row))
+            if (! is_array($row)) {
                 continue;
+            }
 
-            $normalizedRow = array_map(fn($v) => strtolower(trim((string) $v)), $row);
+            $normalizedRow = array_map(fn ($v) => strtolower(trim((string) $v)), $row);
             $joined = implode(' ', $normalizedRow);
 
             if (
@@ -1049,8 +1111,8 @@ class ScheduleImportService
         foreach ($dataRows as $rowNum => $row) {
             $displayRowNum = $headerIndex !== -1 ? ($headerIndex + 1 + $rowNum + 1) : ($rowNum + 1);
 
-            $cells = array_values(array_map(fn($v) => trim((string) $v), (array) $row));
-            if (empty(array_filter($cells, fn($c) => $c !== ''))) {
+            $cells = array_values(array_map(fn ($v) => trim((string) $v), (array) $row));
+            if (empty(array_filter($cells, fn ($c) => $c !== ''))) {
                 continue;
             }
 
@@ -1088,13 +1150,14 @@ class ScheduleImportService
 
             // 1. Validasi & Normalisasi Hari
             $day = $this->resolveDay($rawDay);
-            if (!$day) {
+            if (! $day) {
                 // Abaikan jika penanda baris matriks tabel yang tidak perlu dilaporkan sebagai error
                 if (str_contains($rawDay, '---') || str_contains($rawDay, '-x-')) {
                     continue;
                 }
                 $errors[] = "Baris {$displayRowNum}: Hari '{$rawDay}' tidak dikenali. Gunakan Senin, Selasa, Rabu, Kamis, atau Jumat.";
                 $skipped++;
+
                 continue;
             }
 
@@ -1103,6 +1166,7 @@ class ScheduleImportService
             if (isset($timeInfo['error'])) {
                 $errors[] = "Baris {$displayRowNum}: {$timeInfo['error']}";
                 $skipped++;
+
                 continue;
             }
 
@@ -1116,6 +1180,7 @@ class ScheduleImportService
             if (empty($subject)) {
                 $errors[] = "Baris {$displayRowNum}: Nama Mata Pelajaran tidak boleh kosong.";
                 $skipped++;
+
                 continue;
             }
             if (mb_strlen($subject) > 100) {
@@ -1124,25 +1189,28 @@ class ScheduleImportService
 
             // 4. Resolusi Guru Pengampu
             $teacherId = $this->resolveTeacherId($rawTeacher, $teachers);
-            if (!$teacherId) {
+            if (! $teacherId) {
                 $errors[] = "Baris {$displayRowNum}: Guru pengampu '{$rawTeacher}' tidak ditemukan di sistem. Harap cek nama lengkap, NIP, atau username guru.";
                 $skipped++;
+
                 continue;
             }
 
             // 5. Resolusi Kelas
             $classId = $this->resolveClassId($rawClass, $classes);
-            if (!$classId) {
+            if (! $classId) {
                 $errors[] = "Baris {$displayRowNum}: Kelas '{$rawClass}' tidak ditemukan di daftar kelas aktif.";
                 $skipped++;
+
                 continue;
             }
 
             // 6. Resolusi Ruangan (Auto-create jika belum ada)
             $roomId = $this->resolveRoomId($rawRoom, $rooms);
-            if (!$roomId) {
+            if (! $roomId) {
                 $errors[] = "Baris {$displayRowNum}: Ruangan tidak boleh kosong.";
                 $skipped++;
+
                 continue;
             }
 
@@ -1164,6 +1232,7 @@ class ScheduleImportService
             if ($conflict) {
                 $errors[] = "Baris {$displayRowNum} ({$subject} - {$rawClass}): Dilewati karena {$conflict}";
                 $skipped++;
+
                 continue;
             }
 
@@ -1239,15 +1308,15 @@ class ScheduleImportService
 
         // 1. Deteksi rentang waktu formal, contoh: 07:15 - 08:35, 07.15-08.35, 07:15 s/d 08:35
         preg_match_all('/(\d{1,2}[:.]\d{2})/', $raw, $matches);
-        if (!empty($matches[0]) && count($matches[0]) >= 2) {
+        if (! empty($matches[0]) && count($matches[0]) >= 2) {
             $t1 = str_replace('.', ':', $matches[0][0]);
             $t2 = str_replace('.', ':', $matches[0][1]);
 
             // Normalisasi format HH:MM dua digit
             $parts1 = explode(':', $t1);
             $parts2 = explode(':', $t2);
-            $startTime = str_pad($parts1[0], 2, '0', STR_PAD_LEFT) . ':' . str_pad($parts1[1], 2, '0', STR_PAD_LEFT);
-            $endTime = str_pad($parts2[0], 2, '0', STR_PAD_LEFT) . ':' . str_pad($parts2[1], 2, '0', STR_PAD_LEFT);
+            $startTime = str_pad($parts1[0], 2, '0', STR_PAD_LEFT).':'.str_pad($parts1[1], 2, '0', STR_PAD_LEFT);
+            $endTime = str_pad($parts2[0], 2, '0', STR_PAD_LEFT).':'.str_pad($parts2[1], 2, '0', STR_PAD_LEFT);
 
             if ($startTime >= $endTime) {
                 return ['error' => "Format waktu '{$raw}' tidak valid (jam mulai {$startTime} harus lebih awal dari jam selesai {$endTime})."];
@@ -1257,10 +1326,12 @@ class ScheduleImportService
             $startPeriod = null;
             $endPeriod = null;
             foreach ($dailyPeriods as $p => $slot) {
-                if ($slot['start'] === $startTime)
+                if ($slot['start'] === $startTime) {
                     $startPeriod = $p;
-                if ($slot['end'] === $endTime)
+                }
+                if ($slot['end'] === $endTime) {
                     $endPeriod = $p;
+                }
             }
 
             return [
@@ -1285,8 +1356,9 @@ class ScheduleImportService
                 $ep = $temp;
             }
 
-            if (!isset($dailyPeriods[$sp]) || !isset($dailyPeriods[$ep])) {
+            if (! isset($dailyPeriods[$sp]) || ! isset($dailyPeriods[$ep])) {
                 $maxPeriod = count($dailyPeriods);
+
                 return ['error' => "Jam ke-{$sp} s/d {$ep} tidak valid untuk hari {$day}. Hari {$day} hanya memiliki jam ke-1 s/d {$maxPeriod}."];
             }
 
@@ -1301,8 +1373,9 @@ class ScheduleImportService
         // 3. Deteksi satu angka jam ke-, contoh: "1", "Jam 4"
         if (preg_match('/(\d+)/', $clean, $m)) {
             $p = (int) $m[1];
-            if (!isset($dailyPeriods[$p])) {
+            if (! isset($dailyPeriods[$p])) {
                 $maxPeriod = count($dailyPeriods);
+
                 return ['error' => "Jam ke-{$p} tidak valid untuk hari {$day} (tersedia jam 1 s/d {$maxPeriod})."];
             }
 
@@ -1324,8 +1397,9 @@ class ScheduleImportService
     protected function resolveTeacherId(string $rawTeacher, &$teachers): ?int
     {
         $clean = trim($rawTeacher);
-        if (empty($clean) || $clean === '-')
+        if (empty($clean) || $clean === '-') {
             return null;
+        }
 
         $lowerClean = strtolower($clean);
 
@@ -1361,7 +1435,7 @@ class ScheduleImportService
         $cleanWithoutTitle = $this->stripAcademicTitles($lowerClean);
         foreach ($teachers as $t) {
             $tWithoutTitle = $this->stripAcademicTitles(strtolower($t->fullname));
-            if ($tWithoutTitle === $cleanWithoutTitle && !empty($cleanWithoutTitle)) {
+            if ($tWithoutTitle === $cleanWithoutTitle && ! empty($cleanWithoutTitle)) {
                 return $t->id;
             }
         }
@@ -1385,6 +1459,7 @@ class ScheduleImportService
             if (is_object($teachers) && method_exists($teachers, 'push')) {
                 $teachers->push($user);
             }
+
             return $user->id;
         }
 
@@ -1479,11 +1554,11 @@ class ScheduleImportService
             'b.a.',
             'b.a',
             'ph.d.',
-            'ph.d'
+            'ph.d',
         ];
 
         foreach ($titles as $t) {
-            $name = preg_replace('/\b' . preg_quote($t, '/') . '\b/i', '', $name);
+            $name = preg_replace('/\b'.preg_quote($t, '/').'\b/i', '', $name);
         }
 
         // 5. Bersihkan tanda baca titik, koma, strip yang tertinggal
@@ -1501,6 +1576,7 @@ class ScheduleImportService
 
         // Fallback jika tidak ada kata alfabet yang cocok
         $fallback = strtolower(preg_replace('/[^a-zA-Z0-9]/', '', $fullname));
+
         return substr($fallback, 0, 15) ?: 'guru';
     }
 
@@ -1578,11 +1654,11 @@ class ScheduleImportService
             'b.a.',
             'b.a',
             'ph.d.',
-            'ph.d'
+            'ph.d',
         ];
 
         foreach ($titles as $t) {
-            $name = preg_replace('/\b' . preg_quote($t, '/') . '\b/i', '', $name);
+            $name = preg_replace('/\b'.preg_quote($t, '/').'\b/i', '', $name);
         }
 
         // 5. Bersihkan tanda baca titik, koma, strip yang tertinggal
@@ -1605,9 +1681,10 @@ class ScheduleImportService
             $u = $base;
             $cnt = 1;
             while (isset($existingUsernames[$u]) || User::where('username', $u)->exists()) {
-                $u = $base . $cnt++;
+                $u = $base.$cnt++;
             }
             $existingUsernames[$u] = true;
+
             return $u;
         }
 
@@ -1618,18 +1695,20 @@ class ScheduleImportService
         // Aturan 1: nama pertama_nama kedua (atau nama pertama jika hanya 1 kata)
         $candidate = ($word2 !== null) ? "{$word1}_{$word2}" : $word1;
 
-        $isTaken = fn($usr) => isset($existingUsernames[$usr]) || User::where('username', $usr)->exists();
+        $isTaken = fn ($usr) => isset($existingUsernames[$usr]) || User::where('username', $usr)->exists();
 
-        if (!$isTaken($candidate)) {
+        if (! $isTaken($candidate)) {
             $existingUsernames[$candidate] = true;
+
             return $candidate;
         }
 
         // Aturan 2: Jika 2 nama depan sama (sudah dipakai) dan ada kata ke-3 -> nama pertama_nama kedua_nama ketiga
         if ($word3 !== null) {
             $candidate3 = "{$word1}_{$word2}_{$word3}";
-            if (!$isTaken($candidate3)) {
+            if (! $isTaken($candidate3)) {
                 $existingUsernames[$candidate3] = true;
+
                 return $candidate3;
             }
         }
@@ -1637,13 +1716,14 @@ class ScheduleImportService
         // Aturan 3: Jika masih bentrok atau tidak ada kata ke-3, tambahkan angka pembeda berurutan
         $baseCollision = ($word3 !== null) ? "{$word1}_{$word2}_{$word3}" : $candidate;
         $cnt = 1;
-        $finalUsername = $baseCollision . $cnt;
+        $finalUsername = $baseCollision.$cnt;
         while ($isTaken($finalUsername)) {
             $cnt++;
-            $finalUsername = $baseCollision . $cnt;
+            $finalUsername = $baseCollision.$cnt;
         }
 
         $existingUsernames[$finalUsername] = true;
+
         return $finalUsername;
     }
 
@@ -1686,16 +1766,17 @@ class ScheduleImportService
             'prof.',
             'dr.',
             'h.',
-            'hj.'
+            'hj.',
         ];
 
         $cleaned = $name;
         foreach ($titles as $title) {
-            $cleaned = preg_replace('/\b' . preg_quote($title, '/') . '\b/i', '', $cleaned);
+            $cleaned = preg_replace('/\b'.preg_quote($title, '/').'\b/i', '', $cleaned);
         }
 
         $cleaned = preg_replace('/[,\.]/', ' ', $cleaned);
         $cleaned = preg_replace('/\s+/', ' ', $cleaned);
+
         return trim($cleaned);
     }
 
@@ -1706,8 +1787,9 @@ class ScheduleImportService
     protected function resolveClassId(string $rawClass, &$classes): ?int
     {
         $clean = trim($rawClass);
-        if (empty($clean) || $clean === '-')
+        if (empty($clean) || $clean === '-') {
             return null;
+        }
 
         $normalized = strtolower(str_replace([' ', '-', '_'], '', $clean));
 
@@ -1725,7 +1807,7 @@ class ScheduleImportService
 
         // Pencocokan AK -> AKL (contoh: X AK1 -> X AKL 1)
         if (preg_match('/(x|xi|xii)ak(\d+)/i', $normalized, $m)) {
-            $aklNorm = $m[1] . 'akl' . $m[2];
+            $aklNorm = $m[1].'akl'.$m[2];
             foreach ($classes as $c) {
                 $cNorm = strtolower(str_replace([' ', '-', '_'], '', $c->class_name));
                 if ($cNorm === $aklNorm) {
@@ -1736,7 +1818,7 @@ class ScheduleImportService
 
         // Pencocokan kelas tanpa rombel tunggal (contoh: XII LPS -> XII LPS 1, X BD -> X BD 1)
         if (preg_match('/^(x|xi|xii)(lps|bd)$/i', $normalized, $m)) {
-            $candNorm = $m[1] . $m[2] . '1';
+            $candNorm = $m[1].$m[2].'1';
             foreach ($classes as $c) {
                 $cNorm = strtolower(str_replace([' ', '-', '_'], '', $c->class_name));
                 if ($cNorm === $candNorm) {
@@ -1755,10 +1837,11 @@ class ScheduleImportService
 
         // Otomatis buat kelas baru jika tidak ditemukan
         $grade = 'X';
-        if (str_starts_with($clean, 'XII') || str_starts_with($clean, '12'))
+        if (str_starts_with($clean, 'XII') || str_starts_with($clean, '12')) {
             $grade = 'XII';
-        elseif (str_starts_with($clean, 'XI') || str_starts_with($clean, '11'))
+        } elseif (str_starts_with($clean, 'XI') || str_starts_with($clean, '11')) {
             $grade = 'XI';
+        }
 
         $major = trim(preg_replace('/^(X|XI|XII|10|11|12)\s*/i', '', $clean));
         $newClass = Classes::create([
@@ -1780,8 +1863,9 @@ class ScheduleImportService
     protected function resolveRoomId(string $rawRoom, &$rooms): ?int
     {
         $clean = trim($rawRoom);
-        if (empty($clean) || $clean === '-')
+        if (empty($clean) || $clean === '-') {
             return null;
+        }
 
         $normalized = strtolower(str_replace([' ', '-', '_'], '', $clean));
 
@@ -1830,7 +1914,75 @@ class ScheduleImportService
         string $cycleType,
         array $batchSchedules
     ): ?string {
-        // Proteksi bentrok dinonaktifkan sesuai permintaan sekolah
+        $cleanStart = substr($startTime, 0, 5);
+        $cleanEnd = substr($endTime, 0, 5);
+
+        // 1. Cek terhadap batch schedules (baris yang sudah diproses di file yang sama)
+        foreach ($batchSchedules as $b) {
+            if ($b['day'] !== $day) {
+                continue;
+            }
+            $bCycle = $b['cycle_type'] ?? 'semua';
+            $cycleOverlap = ($cycleType === 'semua' || $bCycle === 'semua' || strtolower($cycleType) === strtolower($bCycle));
+            if (! $cycleOverlap) {
+                continue;
+            }
+
+            $bStart = substr($b['start_time'], 0, 5);
+            $bEnd = substr($b['end_time'], 0, 5);
+            $timeOverlap = ($cleanStart < $bEnd && $cleanEnd > $bStart);
+            if (! $timeOverlap) {
+                continue;
+            }
+
+            if ($b['teacher_id'] === $teacherId && $teacherId > 0) {
+                return "bentrok guru (guru sudah terjadwal di baris sebelumnya pada hari {$day} pukul {$bStart}-{$bEnd})";
+            }
+            if ($roomId > 0 && ($b['room_id'] ?? 0) === $roomId) {
+                return "bentrok ruangan (ruang sudah digunakan di baris sebelumnya pada hari {$day} pukul {$bStart}-{$bEnd})";
+            }
+            if ($b['class_id'] === $classId && $classId > 0) {
+                return "bentrok kelas (kelas sudah memiliki jadwal lain di baris sebelumnya pada hari {$day} pukul {$bStart}-{$bEnd})";
+            }
+        }
+
+        // 2. Cek terhadap database (jadwal yang sudah ada sebelumnya)
+        $baseConflictQuery = function ($query) use ($day, $cleanStart, $cleanEnd, $cycleType) {
+            $query->where('day_of_week', $day);
+            if ($cycleType !== 'semua') {
+                $query->whereIn('cycle_type', [$cycleType, 'semua']);
+            }
+            $query->where('start_time', '<', $cleanEnd)
+                ->where('end_time', '>', $cleanStart);
+        };
+
+        if ($teacherId > 0) {
+            $teacherConflict = Schedule::where('teacher_id', $teacherId)->where($baseConflictQuery)->first();
+            if ($teacherConflict) {
+                $tRange = substr($teacherConflict->start_time, 0, 5).'-'.substr($teacherConflict->end_time, 0, 5);
+
+                return "bentrok guru dengan jadwal tersimpan di database pada hari {$day} pukul {$tRange} ({$teacherConflict->cycle_type})";
+            }
+        }
+
+        if ($roomId > 0) {
+            $roomConflict = Schedule::where('room_id', $roomId)->where($baseConflictQuery)->first();
+            if ($roomConflict) {
+                $tRange = substr($roomConflict->start_time, 0, 5).'-'.substr($roomConflict->end_time, 0, 5);
+
+                return "bentrok ruangan dengan jadwal tersimpan di database pada hari {$day} pukul {$tRange} ({$roomConflict->cycle_type})";
+            }
+        }
+
+        if ($classId > 0) {
+            $classConflict = Schedule::where('class_id', $classId)->where($baseConflictQuery)->first();
+            if ($classConflict) {
+                $tRange = substr($classConflict->start_time, 0, 5).'-'.substr($classConflict->end_time, 0, 5);
+
+                return "bentrok kelas dengan jadwal tersimpan di database pada hari {$day} pukul {$tRange} ({$classConflict->cycle_type})";
+            }
+        }
+
         return null;
     }
 
@@ -1839,7 +1991,7 @@ class ScheduleImportService
      */
     public function generateTemplateSpreadsheet(): Spreadsheet
     {
-        $spreadsheet = new Spreadsheet();
+        $spreadsheet = new Spreadsheet;
         $spreadsheet->getProperties()
             ->setCreator('Sistem School Class Progress (SCP)')
             ->setTitle('Template Import Jadwal Pelajaran')

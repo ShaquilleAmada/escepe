@@ -26,7 +26,7 @@ class ProfileController extends Controller
 
         return response()->json([
             'success' => true,
-            'data'    => $user,
+            'data' => $user,
         ], 200);
     }
 
@@ -40,14 +40,14 @@ class ProfileController extends Controller
 
         $validated = $request->validate([
             'fullname' => 'required|string|max:100',
-            'email'    => 'nullable|email|max:100|unique:users,email,' . $user->id,
-            'phone'    => 'nullable|string|max:20',
-            'nip_nisn' => 'nullable|string|max:30|unique:users,nip_nisn,' . $user->id,
+            'email' => 'nullable|email|max:100|unique:users,email,'.$user->id,
+            'phone' => 'nullable|string|max:20',
+            'nip_nisn' => 'nullable|string|max:30|unique:users,nip_nisn,'.$user->id,
         ], [
             'fullname.required' => 'Nama lengkap wajib diisi.',
-            'email.email'       => 'Format email tidak valid.',
-            'email.unique'      => 'Email sudah digunakan oleh akun lain.',
-            'nip_nisn.unique'   => 'NIP/NISN sudah digunakan oleh akun lain.',
+            'email.email' => 'Format email tidak valid.',
+            'email.unique' => 'Email sudah digunakan oleh akun lain.',
+            'nip_nisn.unique' => 'NIP/NISN sudah digunakan oleh akun lain.',
         ]);
 
         $user->update($validated);
@@ -55,7 +55,7 @@ class ProfileController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Profil berhasil diperbarui.',
-            'data'    => $user->fresh()->load(['role', 'schoolClass']),
+            'data' => $user->fresh()->load(['role', 'schoolClass']),
         ], 200);
     }
 
@@ -68,20 +68,20 @@ class ProfileController extends Controller
         $user = $request->user();
 
         $request->validate([
-            'current_password'          => 'required|string',
-            'password'                  => ['required', Password::min(8), 'confirmed'],
+            'current_password' => 'required|string',
+            'password' => ['required', Password::min(8), 'confirmed'],
         ], [
             'current_password.required' => 'Password saat ini wajib diisi.',
-            'password.required'         => 'Password baru wajib diisi.',
-            'password.confirmed'        => 'Konfirmasi password tidak cocok.',
+            'password.required' => 'Password baru wajib diisi.',
+            'password.confirmed' => 'Konfirmasi password tidak cocok.',
         ]);
 
         // Verifikasi password lama
-        if (!Hash::check($request->current_password, $user->password)) {
+        if (! Hash::check($request->current_password, $user->password)) {
             return response()->json([
                 'success' => false,
                 'message' => 'Password saat ini tidak sesuai.',
-                'errors'  => ['current_password' => ['Password saat ini tidak sesuai.']],
+                'errors' => ['current_password' => ['Password saat ini tidak sesuai.']],
             ], 422);
         }
 
@@ -90,7 +90,7 @@ class ProfileController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Password baru tidak boleh sama dengan password saat ini.',
-                'errors'  => ['password' => ['Password baru tidak boleh sama dengan password saat ini.']],
+                'errors' => ['password' => ['Password baru tidak boleh sama dengan password saat ini.']],
             ], 422);
         }
 

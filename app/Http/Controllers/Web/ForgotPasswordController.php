@@ -31,7 +31,7 @@ class ForgotPasswordController extends Controller
             'email' => ['required', 'email'],
         ], [
             'email.required' => 'Email wajib diisi.',
-            'email.email'    => 'Format email tidak valid.',
+            'email.email' => 'Format email tidak valid.',
         ]);
 
         $email = strtolower(trim($request->email));
@@ -52,11 +52,11 @@ class ForgotPasswordController extends Controller
             // Kirim OTP via email atau session display (sesuai config)
             $this->otpService->dispatch($otp, $email, $request);
         } catch (\Throwable $e) {
-            Log::error('Gagal mengirim email OTP: ' . $e->getMessage());
+            Log::error('Gagal mengirim email OTP: '.$e->getMessage());
 
             return back()
                 ->withInput()
-                ->withErrors(['email' => 'Gagal mengirim email verifikasi ke ' . $email . '. Pastikan konfigurasi SMTP email pada server sudah aktif.']);
+                ->withErrors(['email' => 'Gagal mengirim email verifikasi ke '.$email.'. Pastikan konfigurasi SMTP email pada server sudah aktif.']);
         }
 
         // Simpan email di session untuk langkah verifikasi OTP
@@ -65,7 +65,7 @@ class ForgotPasswordController extends Controller
         $request->session()->save();
 
         $statusMsg = config('otp.mode') === 'email'
-            ? 'Kode OTP 6 digit telah dikirim ke email ' . $email . '. Silakan periksa kotak masuk atau spam.'
+            ? 'Kode OTP 6 digit telah dikirim ke email '.$email.'. Silakan periksa kotak masuk atau spam.'
             : 'Kode verifikasi OTP berhasil dibuat.';
 
         return redirect()->route('password.verify.form')
@@ -109,11 +109,11 @@ class ForgotPasswordController extends Controller
             'otp' => ['required', 'string', 'size:6', 'regex:/^[0-9]{6}$/'],
         ], [
             'otp.required' => 'Kode OTP wajib diisi.',
-            'otp.size'     => 'Kode OTP harus berupa 6 digit angka.',
-            'otp.regex'    => 'Kode OTP hanya boleh berisi angka.',
+            'otp.size' => 'Kode OTP harus berupa 6 digit angka.',
+            'otp.regex' => 'Kode OTP hanya boleh berisi angka.',
         ]);
 
-        $email       = $request->session()->get('otp_email');
+        $email = $request->session()->get('otp_email');
         $maxAttempts = (int) config('otp.max_attempts', 5);
 
         // Cari OTP aktif untuk email ini (urutkan id terbaru)
@@ -126,12 +126,14 @@ class ForgotPasswordController extends Controller
         // Cek limit percobaan
         if ($otpRecord->isLocked($maxAttempts)) {
             $otpRecord->delete();
+
             return back()->withErrors(['otp' => 'Terlalu banyak percobaan salah. Silakan kirim ulang kode OTP baru.']);
         }
 
         // Cek kedaluwarsa (10 menit)
         if ($otpRecord->isExpired()) {
             $otpRecord->delete();
+
             return back()->withErrors(['otp' => 'Kode OTP telah kedaluwarsa (berlaku 10 menit). Silakan minta kode baru.']);
         }
 
@@ -142,6 +144,7 @@ class ForgotPasswordController extends Controller
 
             if ($sisaPercobaan <= 0) {
                 $otpRecord->delete();
+
                 return back()->withErrors(['otp' => 'Batas percobaan verifikasi habis. Silakan kirim ulang kode OTP baru.']);
             }
 
@@ -174,9 +177,9 @@ class ForgotPasswordController extends Controller
             $request->session()->save();
 
             return redirect()->route('password.verify.form')
-                ->with('status', 'Kode OTP baru telah berhasil dikirim ke ' . $email . '. Silakan periksa email Anda.');
+                ->with('status', 'Kode OTP baru telah berhasil dikirim ke '.$email.'. Silakan periksa email Anda.');
         } catch (\Throwable $e) {
-            Log::error('Gagal kirim ulang OTP: ' . $e->getMessage());
+            Log::error('Gagal kirim ulang OTP: '.$e->getMessage());
 
             return back()->withErrors(['otp' => 'Gagal mengirim ulang email OTP. Silakan coba lagi beberapa saat lagi.']);
         }
@@ -211,8 +214,8 @@ class ForgotPasswordController extends Controller
         $request->validate([
             'password' => ['required', Password::min(8), 'confirmed'],
         ], [
-            'password.required'  => 'Password baru wajib diisi.',
-            'password.min'       => 'Password baru minimal 8 karakter.',
+            'password.required' => 'Password baru wajib diisi.',
+            'password.min' => 'Password baru minimal 8 karakter.',
             'password.confirmed' => 'Konfirmasi password baru tidak cocok.',
         ]);
 
@@ -220,6 +223,7 @@ class ForgotPasswordController extends Controller
 
         if (! $user) {
             $request->session()->forget(['otp_email', 'otp_verified']);
+
             return redirect()->route('password.forgot')
                 ->withErrors(['email' => 'Akun tidak ditemukan. Silakan hubungi admin.']);
         }

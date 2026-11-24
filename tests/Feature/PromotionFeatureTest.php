@@ -2,15 +2,16 @@
 
 namespace Tests\Feature;
 
-use Tests\TestCase;
-use App\Models\User;
 use App\Models\Classes;
-use Illuminate\Support\Facades\Hash;
+use App\Models\User;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
+use Illuminate\Support\Facades\Hash;
+use Tests\TestCase;
 
 class PromotionFeatureTest extends TestCase
 {
     use DatabaseTransactions;
+
     protected function getWakaUser()
     {
         return User::where('role_id', 1)->first() ?? User::create([
@@ -51,8 +52,8 @@ class PromotionFeatureTest extends TestCase
         $this->assertNotNull($class10);
         $this->assertNotNull($class11);
 
-        $uname11 = 'test_xi_' . uniqid();
-        $uname10 = 'test_x_' . uniqid();
+        $uname11 = 'test_xi_'.uniqid();
+        $uname10 = 'test_x_'.uniqid();
 
         $student11 = User::create([
             'username' => $uname11,

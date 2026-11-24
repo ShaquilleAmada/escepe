@@ -46,13 +46,14 @@ class AuthController extends Controller
                 $request->session()->regenerateToken();
 
                 return back()->withErrors([
-                    'username' => 'Akses ditolak! Website ini dikunci khusus untuk Waka Kurikulum / Admin. Akun Anda terdaftar sebagai ' . $roleName . ' (' . $user->fullname . ') dan hanya diizinkan mengakses via aplikasi mobile/klien.',
+                    'username' => 'Akses ditolak! Website ini dikunci khusus untuk Waka Kurikulum / Admin. Akun Anda terdaftar sebagai '.$roleName.' ('.$user->fullname.') dan hanya diizinkan mengakses via aplikasi mobile/klien.',
                 ])->onlyInput('username');
             }
 
             $request->session()->regenerate();
+
             return redirect()->intended(route('waka.dashboard'))
-                ->with('success', 'Selamat datang, ' . $user->fullname);
+                ->with('success', 'Selamat datang, '.$user->fullname);
         }
 
         return back()->withErrors([

@@ -31,4 +31,3 @@ class TeacherAbsence extends Model
         return $this->belongsTo(User::class, 'marked_by');
     }
 }
-

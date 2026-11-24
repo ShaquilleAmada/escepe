@@ -18,7 +18,7 @@ class RoomMatrixImportService
     protected array $standardClassNames = [
         'X RPL 1', 'X RPL 2', 'X TKJ 1', 'X TKJ 2', 'X DKV 1', 'X DKV 2', 'X AKL 1', 'X AKL 2', 'X AKL 3', 'X LPS 1', 'X LPS 2', 'X MP 1', 'X MP 2', 'X BR 1', 'X BR 2', 'X BD 1',
         'XI RPL 1', 'XI RPL 2', 'XI TKJ 1', 'XI TKJ 2', 'XI DKV 1', 'XI DKV 2', 'XI AKL 1', 'XI AKL 2', 'XI AKL 3', 'XI LPS 1', 'XI LPS 2', 'XI MP 1', 'XI MP 2', 'XI BR 1', 'XI BR 2', 'XI BD 1',
-        'XII RPL 1', 'XII RPL 2', 'XII TKJ 1', 'XII TKJ 2', 'XII DKV 1', 'XII DKV 2', 'XII AKL 1', 'XII AKL 2', 'XII AKL 3', 'XII AKL 4', 'XII LPS 1', 'XII MP 1', 'XII MP 2', 'XII BR 1', 'XII BR 2', 'XII BD 1'
+        'XII RPL 1', 'XII RPL 2', 'XII TKJ 1', 'XII TKJ 2', 'XII DKV 1', 'XII DKV 2', 'XII AKL 1', 'XII AKL 2', 'XII AKL 3', 'XII AKL 4', 'XII LPS 1', 'XII MP 1', 'XII MP 2', 'XII BR 1', 'XII BR 2', 'XII BD 1',
     ];
 
     /**
@@ -44,7 +44,7 @@ class RoomMatrixImportService
      */
     protected function importPdf(string $filePath, string $cycleType): array
     {
-        $parser = new PdfParser();
+        $parser = new PdfParser;
         $pdf = $parser->parseFile($filePath);
         $pages = $pdf->getPages();
 
@@ -60,12 +60,12 @@ class RoomMatrixImportService
         $pageDays = [
             0 => ['Senin', 'Selasa'],
             1 => ['Rabu', 'Kamis'],
-            2 => ['Jumat']
+            2 => ['Jumat'],
         ];
 
         // Siapkan mapping model kelas berdasarkan 48 kolom
         $classModels = $this->resolveClassModels();
-        $allRoomsCache = Room::all()->keyBy(fn($r) => strtolower($r->room_name));
+        $allRoomsCache = Room::all()->keyBy(fn ($r) => strtolower($r->room_name));
 
         $totalUpdatedSchedules = 0;
         $totalSlotsProcessed = 0;
@@ -76,7 +76,9 @@ class RoomMatrixImportService
         try {
             foreach ($pages as $pIdx => $page) {
                 $days = $pageDays[$pIdx] ?? [];
-                if (empty($days)) continue;
+                if (empty($days)) {
+                    continue;
+                }
 
                 $arr = $page->getTextArray();
                 $rows = $this->extractPeriodRowsFromPdfArray($arr);
@@ -90,7 +92,7 @@ class RoomMatrixImportService
                     ];
                 } else {
                     $dayRowMap = [
-                        $days[0] => $rows
+                        $days[0] => $rows,
                     ];
                 }
 
@@ -99,16 +101,20 @@ class RoomMatrixImportService
                         $jam = $pr['jam'];
                         foreach ($pr['rooms'] as $colIdx => $rawRoom) {
                             $roomName = $this->normalizeRoomName($rawRoom);
-                            if (!$roomName) continue;
+                            if (! $roomName) {
+                                continue;
+                            }
 
                             $classObj = $classModels[$colIdx] ?? null;
-                            if (!$classObj) continue;
+                            if (! $classObj) {
+                                continue;
+                            }
 
                             $uniqueRoomsFound[$roomName] = true;
 
                             // Pastikan ruangan ada di database
                             $roomLower = strtolower($roomName);
-                            if (!isset($allRoomsCache[$roomLower])) {
+                            if (! isset($allRoomsCache[$roomLower])) {
                                 $newRoom = Room::create(['room_name' => $roomName]);
                                 $allRoomsCache[$roomLower] = $newRoom;
                                 $newRoomsCreated++;
@@ -120,7 +126,7 @@ class RoomMatrixImportService
                                 ->where('day_of_week', $dayName)
                                 ->where('start_period', '<=', $jam)
                                 ->where('end_period', '>=', $jam)
-                                ->when($cycleType, fn($q) => $q->where('cycle_type', $cycleType))
+                                ->when($cycleType, fn ($q) => $q->where('cycle_type', $cycleType))
                                 ->get();
 
                             foreach ($schedules as $sch) {
@@ -160,7 +166,7 @@ class RoomMatrixImportService
     {
         $spreadsheet = IOFactory::load($filePath);
         $classModels = $this->resolveClassModels();
-        $allRoomsCache = Room::all()->keyBy(fn($r) => strtolower($r->room_name));
+        $allRoomsCache = Room::all()->keyBy(fn ($r) => strtolower($r->room_name));
 
         $totalUpdatedSchedules = 0;
         $totalSlotsProcessed = 0;
@@ -174,30 +180,34 @@ class RoomMatrixImportService
                 $currentDay = null;
 
                 foreach ($rows as $row) {
-                    $firstCell = trim((string)($row[0] ?? ''));
+                    $firstCell = trim((string) ($row[0] ?? ''));
                     if (in_array(strtolower($firstCell), ['senin', 'selasa', 'rabu', 'kamis', 'jumat'])) {
                         $currentDay = ucfirst(strtolower($firstCell));
                     }
 
-                    $jamCell = trim((string)($row[1] ?? ''));
-                    if (!is_numeric($jamCell) || !$currentDay) {
+                    $jamCell = trim((string) ($row[1] ?? ''));
+                    if (! is_numeric($jamCell) || ! $currentDay) {
                         continue;
                     }
 
-                    $jam = (int)$jamCell;
+                    $jam = (int) $jamCell;
                     // Kolom ruangan dimulai dari indeks 3 (setelah Hari, Jam, Waktu)
                     for ($c = 0; $c < 48; $c++) {
-                        $rawRoom = trim((string)($row[$c + 3] ?? ''));
+                        $rawRoom = trim((string) ($row[$c + 3] ?? ''));
                         $roomName = $this->normalizeRoomName($rawRoom);
-                        if (!$roomName) continue;
+                        if (! $roomName) {
+                            continue;
+                        }
 
                         $classObj = $classModels[$c] ?? null;
-                        if (!$classObj) continue;
+                        if (! $classObj) {
+                            continue;
+                        }
 
                         $uniqueRoomsFound[$roomName] = true;
 
                         $roomLower = strtolower($roomName);
-                        if (!isset($allRoomsCache[$roomLower])) {
+                        if (! isset($allRoomsCache[$roomLower])) {
                             $newRoom = Room::create(['room_name' => $roomName]);
                             $allRoomsCache[$roomLower] = $newRoom;
                             $newRoomsCreated++;
@@ -208,7 +218,7 @@ class RoomMatrixImportService
                             ->where('day_of_week', $currentDay)
                             ->where('start_period', '<=', $jam)
                             ->where('end_period', '>=', $jam)
-                            ->when($cycleType, fn($q) => $q->where('cycle_type', $cycleType))
+                            ->when($cycleType, fn ($q) => $q->where('cycle_type', $cycleType))
                             ->get();
 
                         foreach ($schedules as $sch) {
@@ -259,9 +269,9 @@ class RoomMatrixImportService
                         $cellRooms[] = $arr[$i + $c] ?? '';
                     }
                     $rows[] = [
-                        'jam' => (int)$jam,
+                        'jam' => (int) $jam,
                         'waktu' => $val,
-                        'rooms' => $cellRooms
+                        'rooms' => $cellRooms,
                     ];
                 }
             }
@@ -278,13 +288,14 @@ class RoomMatrixImportService
         $models = [];
         foreach ($this->standardClassNames as $cIdx => $cName) {
             $c = Classes::where('class_name', $cName)->first();
-            if (!$c && str_ends_with($cName, ' 1')) {
+            if (! $c && str_ends_with($cName, ' 1')) {
                 // Fallback kelas tanpa angka 1 (misal: XI BD)
                 $alt = substr($cName, 0, -2);
                 $c = Classes::where('class_name', $alt)->first();
             }
             $models[$cIdx] = $c;
         }
+
         return $models;
     }
 
@@ -299,7 +310,9 @@ class RoomMatrixImportService
      */
     public function normalizeRoomName(?string $raw): ?string
     {
-        if ($raw === null) return null;
+        if ($raw === null) {
+            return null;
+        }
         $trim = trim($raw);
         if (empty($trim) || in_array(strtoupper($trim), ['-', 'IST', 'ISTIRAHAT', 'LITERASI', 'UPACARA'])) {
             return null;
@@ -307,17 +320,17 @@ class RoomMatrixImportService
 
         // L.16 -> Lab 16
         if (preg_match('/^L\.(\d+)$/i', $trim, $m)) {
-            return 'Lab ' . $m[1];
+            return 'Lab '.$m[1];
         }
 
         // L.IPA -> Lab IPA
         if (preg_match('/^L\.(.+)$/i', $trim, $m)) {
-            return 'Lab ' . strtoupper($m[1]);
+            return 'Lab '.strtoupper($m[1]);
         }
 
         // Angka murni: 12 -> Ruang 12
         if (is_numeric($trim)) {
-            return 'Ruang ' . $trim;
+            return 'Ruang '.$trim;
         }
 
         // Hall
@@ -338,4 +351,3 @@ class RoomMatrixImportService
         return $trim;
     }
 }
-

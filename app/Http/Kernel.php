@@ -66,6 +66,4 @@ class Kernel extends HttpKernel
         'waka' => \App\Http\Middleware\EnsureUserIsWaka::class,
         'role' => \App\Http\Middleware\EnsureUserHasRole::class,
     ];
-
-    
 }

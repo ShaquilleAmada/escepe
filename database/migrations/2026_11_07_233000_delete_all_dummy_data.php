@@ -36,7 +36,7 @@ return new class extends Migration
         $dummyUsers = DB::table('users')->whereIn('username', $dummyUsernames)->get();
         $dummyUserIds = $dummyUsers->pluck('id')->toArray();
 
-        if (!empty($dummyUserIds)) {
+        if (! empty($dummyUserIds)) {
             // Matikan sementara foreign key checks agar proses pembersihan tidak terblokir
             DB::statement('SET FOREIGN_KEY_CHECKS=0;');
 
@@ -123,4 +123,3 @@ return new class extends Migration
         // Data dummy tidak perlu dikembalikan saat rollback
     }
 };
-

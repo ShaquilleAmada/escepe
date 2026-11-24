@@ -6,7 +6,6 @@
  * Root gateway for Shared Hosting (DomaiNesia / cPanel).
  * This ensures the application runs directly under the root domain without /public.
  */
-
 define('LARAVEL_START', microtime(true));
 
 // Maintenance mode check

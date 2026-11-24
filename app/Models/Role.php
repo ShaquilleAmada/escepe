@@ -12,10 +12,15 @@ class Role extends Model
 
     // Kunci Konstanta Role ID Sistem SCP
     public const ADMIN = 1;
+
     public const GURU = 2;
+
     public const SISWA = 3;
+
     public const ORANG_TUA = 4;
+
     public const BK = 5;
+
     public const WALI_KELAS = 6;
 
     protected $fillable = [

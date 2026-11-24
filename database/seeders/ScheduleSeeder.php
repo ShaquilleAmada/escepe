@@ -2,11 +2,11 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Seeder;
-use App\Models\Schedule;
-use App\Models\User;
 use App\Models\Classes;
 use App\Models\Room;
+use App\Models\Schedule;
+use App\Models\User;
+use Illuminate\Database\Seeder;
 
 class ScheduleSeeder extends Seeder
 {
@@ -216,7 +216,6 @@ class ScheduleSeeder extends Seeder
                 'end_time' => '14:00',
                 'cycle_type' => 'Putaran 1',
             ],
-
 
             // ==========================================
             // KELAS XII RPL 2 (PUTARAN 1)

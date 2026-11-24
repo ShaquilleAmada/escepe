@@ -15,7 +15,7 @@ class PasswordOtp extends Model
 
     protected $casts = [
         'expires_at' => 'datetime',
-        'attempts'   => 'integer',
+        'attempts' => 'integer',
     ];
 
     /**

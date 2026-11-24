@@ -3,9 +3,9 @@
 namespace App\Http\Controllers\Web\Waka;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
 use App\Models\Schedule;
 use App\Models\User;
+use Illuminate\Http\Request;
 
 class SubjectController extends Controller
 {
@@ -58,6 +58,7 @@ class SubjectController extends Controller
                 $matchClass = $item->classes->contains(function ($c) use ($searchLower) {
                     return str_contains(strtolower($c->class_name), $searchLower);
                 });
+
                 return $matchSubject || $matchTeacher || $matchClass;
             })->values();
         }

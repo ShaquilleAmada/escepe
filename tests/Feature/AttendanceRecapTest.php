@@ -2,12 +2,12 @@
 
 namespace Tests\Feature;
 
-use Illuminate\Foundation\Testing\DatabaseTransactions;
-use Tests\TestCase;
-use App\Models\User;
 use App\Models\Classes;
 use App\Models\Role;
+use App\Models\User;
+use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\Hash;
+use Tests\TestCase;
 
 class AttendanceRecapTest extends TestCase
 {
@@ -29,11 +29,11 @@ class AttendanceRecapTest extends TestCase
     protected function getWakaUser()
     {
         return User::where('role_id', 1)->first() ?? User::create([
-            'role_id'  => 1,
-            'username' => 'test_waka_recap_' . uniqid(),
+            'role_id' => 1,
+            'username' => 'test_waka_recap_'.uniqid(),
             'password' => Hash::make('password123'),
             'fullname' => 'Test Waka Kurikulum',
-            'email'    => 'waka_recap_' . uniqid() . '@test.com',
+            'email' => 'waka_recap_'.uniqid().'@test.com',
         ]);
     }
 
@@ -64,8 +64,8 @@ class AttendanceRecapTest extends TestCase
 
         // Cari index pertama kelas XII, XI, dan X
         $firstXII = null;
-        $firstXI  = null;
-        $firstX   = null;
+        $firstXI = null;
+        $firstX = null;
 
         foreach ($classNames as $idx => $name) {
             if ($firstXII === null && str_starts_with($name, 'XII ')) {
@@ -102,22 +102,22 @@ class AttendanceRecapTest extends TestCase
             'class_name' => 'XII RPL 1',
         ], [
             'grade_level' => 'XII',
-            'major'       => 'RPL',
-            'section'     => '1',
+            'major' => 'RPL',
+            'section' => '1',
         ]);
 
         $student = User::create([
-            'role_id'  => 3,
+            'role_id' => 3,
             'class_id' => $class->id,
-            'username' => 'student_recap_' . uniqid(),
+            'username' => 'student_recap_'.uniqid(),
             'fullname' => 'Budi Siswa Test',
-            'email'    => 'budi_' . uniqid() . '@test.com',
+            'email' => 'budi_'.uniqid().'@test.com',
             'password' => Hash::make('password123'),
         ]);
 
         $response = $this->actingAs($waka)->get(route('waka.attendances.recap.class', [
             'class' => $class->id,
-            'date'  => '2026-11-03',
+            'date' => '2026-11-03',
         ]));
 
         $response->assertStatus(200);

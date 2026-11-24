@@ -11,6 +11,12 @@
   {{-- Tombol Aksi Utama --}}
   <div class="d-flex flex-column flex-sm-row align-items-stretch align-items-sm-center gap-2 flex-shrink-0">
 
+    {{-- Tombol Unduh Template Excel --}}
+    <a href="{{ route('waka.schedules.template') }}" class="btn btn-outline-success d-inline-flex align-items-center justify-content-center gap-2 shadow-sm" title="Unduh Template Excel Resmi (.xlsx) untuk Impor Jadwal FET / Waka">
+      <i class="bi bi-file-earmark-spreadsheet"></i>
+      <span>Unduh Template Excel</span>
+    </a>
+
     {{-- Tombol Impor Jadwal --}}
     @if($config->is_schedule_locked ?? false)
     <button type="button" class="btn btn-outline-primary d-inline-flex align-items-center justify-content-center gap-2 shadow-sm" data-bs-toggle="modal" data-bs-target="#scheduleLockedModal" title="Jadwal Sedang Terkunci">
@@ -18,7 +24,7 @@
       <span>Impor Jadwal</span>
     </button>
     @else
-    <button type="button" class="btn btn-outline-primary d-inline-flex align-items-center justify-content-center gap-2 shadow-sm" data-bs-toggle="modal" data-bs-target="#importScheduleModal" title="Impor Data Jadwal Pelajaran dari File Excel, Word, atau PDF">
+    <button type="button" class="btn btn-outline-primary d-inline-flex align-items-center justify-content-center gap-2 shadow-sm" data-bs-toggle="modal" data-bs-target="#importScheduleModal" title="Impor Data Jadwal Pelajaran dari File Excel">
       <i class="bi bi-file-earmark-arrow-up"></i>
       <span>Impor Jadwal</span>
     </button>
@@ -145,6 +151,22 @@
 </a>
 </div>
 </form>
+
+<div class="d-flex flex-wrap align-items-center gap-2 mt-3 pt-2.5 border-top">
+  <span class="small fw-semibold text-secondary"><i class="bi bi-lightning-charge text-warning me-1"></i>Filter Pintas:</span>
+  <a href="{{ route('waka.schedules.index', ['today' => 1]) }}" class="btn btn-sm {{ ($todayActive ?? false) ? 'btn-primary' : 'btn-outline-primary' }} rounded-pill px-3 py-1 d-inline-flex align-items-center gap-1.5 shadow-none" title="Filter otomatis hari ini dan siklus aktif">
+    <i class="bi bi-calendar-check{{ ($todayActive ?? false) ? '-fill' : '' }}"></i>
+    <span>Hari Ini Mengajar ({{ $config->active_cycle ?? 'Putaran Aktif' }})</span>
+  </a>
+  @if($todayActive ?? false)
+    <span class="badge bg-success-subtle text-success border border-success-subtle small px-2 py-1">
+      <i class="bi bi-check-circle-fill me-1"></i>Menampilkan Jadwal Hari Ini
+    </span>
+    <a href="{{ route('waka.schedules.index') }}" class="btn btn-sm btn-link text-danger text-decoration-none p-0 ms-2 small">
+      <i class="bi bi-x-circle me-1"></i>Reset ke Semua Jadwal
+    </a>
+  @endif
+</div>
 </div>
 </div>
 
@@ -259,7 +281,7 @@ Belum ada jadwal yang sesuai dengan kriteria pencarian.
 </div>
 
 {{-- ============================================================
-     MODAL IMPOR JADWAL PELAJARAN (EXCEL, WORD, PDF)
+     MODAL IMPOR JADWAL PELAJARAN (EXCEL & CSV)
 ============================================================ --}}
 <div class="modal fade" id="importScheduleModal" tabindex="-1" aria-labelledby="importScheduleModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered modal-lg">
@@ -273,13 +295,28 @@ Belum ada jadwal yang sesuai dengan kriteria pencarian.
             </div>
             <div>
               <h5 class="modal-title fw-bold text-dark mb-0 fs-6" id="importScheduleModalLabel">Impor Jadwal Pelajaran Massal</h5>
-              <p class="text-secondary small mb-0" style="font-size: 0.8rem;">Unggah dokumen jadwal pelajaran dari format Excel, Word, atau PDF</p>
+              <p class="text-secondary small mb-0" style="font-size: 0.8rem;">Unggah berkas jadwal pelajaran format Excel (.xlsx, .xls) atau CSV (.csv)</p>
             </div>
           </div>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
 
         <div class="modal-body p-4">
+          {{-- Banner Unduh Template Resmi Excel --}}
+          <div class="alert alert-primary bg-primary-subtle border-primary-subtle d-flex flex-column flex-sm-row align-items-sm-center justify-content-between p-3 rounded-3 mb-4 gap-2">
+            <div class="d-flex align-items-center gap-2.5">
+              <i class="bi bi-file-earmark-spreadsheet-fill fs-2 text-success"></i>
+              <div>
+                <div class="fw-bold text-dark small">Template Resmi Jadwal FET &amp; SCP (.xlsx)</div>
+                <div class="text-secondary small" style="font-size: 0.78rem;">Format kolom standar sinkron dengan ekspor FET. Dilengkapi master data guru, kelas, dan ruangan di Sheet 2.</div>
+              </div>
+            </div>
+            <a href="{{ route('waka.schedules.template') }}" class="btn btn-sm btn-success px-3 shadow-sm text-nowrap d-inline-flex align-items-center justify-content-center gap-1.5 flex-shrink-0">
+              <i class="bi bi-download"></i>
+              <span>Unduh Template Excel</span>
+            </a>
+          </div>
+
           {{-- Kartu Petunjuk & Ketentuan --}}
           <div class="card bg-light border-0 mb-4 p-3 rounded-3" style="background-color: #f8fafc !important; border-left: 3px solid #2563eb !important;">
             <div class="d-flex align-items-start gap-2">
@@ -287,6 +324,7 @@ Belum ada jadwal yang sesuai dengan kriteria pencarian.
               <div class="small flex-grow-1">
                 <span class="fw-bold text-dark d-block mb-1">Ketentuan Format Kolom &amp; Proteksi Anti-Bentrok:</span>
                 <ol class="ps-3 mb-2 text-secondary" style="line-height: 1.6;">
+                  <li>Format file yang diterima: <strong>Excel (.xlsx, .xls)</strong> atau <strong>CSV (.csv)</strong>. Berkas Word (.docx, .doc) atau PDF (.pdf) tidak didukung.</li>
                   <li>Kolom tabel wajib berurutan: <strong>Hari</strong>, <strong>Waktu</strong>, <strong>Mata Pelajaran</strong>, <strong>Guru Pengampu</strong>, <strong>Kelas</strong>, <strong>Ruangan</strong>, dan <strong>Siklus</strong>.</li>
                   <li>Kolom <strong>Hari</strong>: diisi <em>Senin, Selasa, Rabu, Kamis</em>, atau <em>Jumat</em>.</li>
                   <li>Kolom <strong>Waktu</strong>: Cukup ketik nomor jam pelajaran (contoh: <code>Jam Ke-1 - 3</code>, <code>1-3</code>, atau <code>Jam Ke-1</code>). Sistem otomatis membaca jam mulai hingga selesai berdasarkan jadwal jam pelajaran sekolah tanpa perlu mengetik jam 08:00 secara manual.</li>
@@ -305,7 +343,7 @@ Belum ada jadwal yang sesuai dengan kriteria pencarian.
               Siklus / Putaran Jadwal
             </label>
             <select name="cycle_type" id="import_cycle_type" class="form-select form-select-sm">
-              <option value="auto" selected>Otomatis (Deteksi dari Nama File / PDF)</option>
+              <option value="auto" selected>Otomatis (Deteksi dari Nama File Jadwal)</option>
               <option value="Putaran 1">Putaran 1 (Blok Ganjil)</option>
               <option value="Putaran 2">Putaran 2 (Blok Genap)</option>
               <option value="semua">Semua (Berlaku Setiap Minggu)</option>
@@ -318,17 +356,22 @@ Belum ada jadwal yang sesuai dengan kriteria pencarian.
           {{-- Area Dropzone / Upload File --}}
           <div class="mb-3">
             <label for="import_schedule_file_input" class="form-label small fw-semibold text-dark mb-1">
-              Pilih Dokumen File Jadwal <span class="text-danger">*</span>
+              Pilih File Spreadsheet Jadwal (.xlsx, .xls, .csv) <span class="text-danger">*</span>
             </label>
             <div class="border border-2 border-dashed rounded-3 p-4 text-center" id="scheduleDropzoneContainer" style="border-color: #cbd5e1 !important; background-color: #fcfdfe; transition: all 0.2s ease;">
-              <i class="bi bi-cloud-arrow-up display-5 text-primary opacity-75 mb-2 d-block"></i>
+              <i class="bi bi-file-earmark-excel display-5 text-success opacity-75 mb-2 d-block"></i>
               <p class="mb-1 fw-semibold text-dark" style="font-size: 0.95rem;">Seret &amp; letakkan file di sini, atau klik untuk memilih file</p>
-              <p class="text-secondary small mb-3" style="font-size: 0.8rem;">Format didukung: Excel (.xlsx, .xls, .csv), Word (.docx), PDF (.pdf) &bull; Maks 10 MB</p>
+              <p class="text-secondary small mb-2" style="font-size: 0.8rem;">Format didukung: <strong>Hanya File Excel (.xlsx, .xls) atau CSV (.csv)</strong> &bull; Maks 10 MB</p>
+              <div class="alert alert-warning py-1 px-3 d-inline-block small mb-3 border-0 text-dark" style="font-size: 0.75rem; border-radius: 6px; background-color: #fef3c7;">
+                <i class="bi bi-exclamation-triangle-fill text-warning me-1"></i> File Word (.docx, .doc) dan PDF (.pdf) tidak diperbolehkan.
+              </div>
               
-              <input type="file" name="file" id="import_schedule_file_input" class="d-none" accept=".xlsx,.xls,.csv,.docx,.pdf" required onchange="handleScheduleFileSelected(this)">
-              <button type="button" class="btn btn-sm btn-outline-primary px-3 shadow-none" onclick="document.getElementById('import_schedule_file_input').click()">
-                <i class="bi bi-folder2-open me-1"></i> Telusuri File Dokumen
-              </button>
+              <div class="d-block">
+                <input type="file" name="file" id="import_schedule_file_input" class="d-none" accept=".xlsx,.xls,.csv" required onchange="handleScheduleFileSelected(this)">
+                <button type="button" class="btn btn-sm btn-outline-primary px-3 shadow-none" onclick="document.getElementById('import_schedule_file_input').click()">
+                  <i class="bi bi-folder2-open me-1"></i> Telusuri File Excel / CSV (.xlsx, .xls, .csv)
+                </button>
+              </div>
             </div>
 
             {{-- File Selected Feedback --}}
@@ -368,14 +411,23 @@ function handleScheduleFileSelected(input) {
   const dropzone = document.getElementById('scheduleDropzoneContainer');
 
   if (file) {
+    const ext = file.name.split('.').pop().toLowerCase();
+    const allowed = ['xlsx', 'xls', 'csv'];
+
+    if (!allowed.includes(ext)) {
+      alert(`Format file "${file.name}" tidak didukung!\n\nUntuk impor jadwal pelajaran, sistem HANYA menerima berkas Excel (.xlsx, .xls) atau CSV (.csv).\n\nBerkas Word (.docx, .doc) dan PDF (.pdf) tidak diperbolehkan.`);
+      clearSelectedScheduleFile();
+      return;
+    }
+
     nameEl.textContent = file.name;
     const sizeKB = (file.size / 1024).toFixed(1);
     const sizeMB = (file.size / (1024 * 1024)).toFixed(2);
     sizeEl.textContent = file.size > 1024 * 1024 ? `${sizeMB} MB` : `${sizeKB} KB`;
     feedback.classList.remove('d-none');
     if (dropzone) {
-      dropzone.style.borderColor = '#2563eb';
-      dropzone.style.backgroundColor = '#eff6ff';
+      dropzone.style.borderColor = '#16a34a';
+      dropzone.style.backgroundColor = '#f0fdf4';
     }
   } else {
     clearSelectedScheduleFile();

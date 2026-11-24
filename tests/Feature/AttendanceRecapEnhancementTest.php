@@ -2,14 +2,14 @@
 
 namespace Tests\Feature;
 
-use Tests\TestCase;
-use App\Models\User;
 use App\Models\Classes;
-use App\Models\Role;
 use App\Models\LeaveRequest;
+use App\Models\Role;
+use App\Models\User;
 use App\Services\AttendanceRecapService;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
+use Tests\TestCase;
 
 class AttendanceRecapEnhancementTest extends TestCase
 {
@@ -22,7 +22,7 @@ class AttendanceRecapEnhancementTest extends TestCase
             [
                 'fullname' => 'Waka Kurikulum Test',
                 'password' => bcrypt('password123'),
-                'role_id'  => Role::ADMIN,
+                'role_id' => Role::ADMIN,
             ]
         );
     }
@@ -44,22 +44,22 @@ class AttendanceRecapEnhancementTest extends TestCase
         $date = Carbon::today()->toDateString();
 
         $student = User::create([
-            'username'       => 'test_pending_student_' . uniqid(),
-            'role_id'        => Role::SISWA,
-            'class_id'       => $class->id,
+            'username' => 'test_pending_student_'.uniqid(),
+            'role_id' => Role::SISWA,
+            'class_id' => $class->id,
             'student_status' => 'aktif',
-            'fullname'       => 'Siswa Pending Leave',
-            'password'       => bcrypt('password123'),
+            'fullname' => 'Siswa Pending Leave',
+            'password' => bcrypt('password123'),
         ]);
 
         // Create pending leave request
         LeaveRequest::create([
-            'student_id'      => $student->id,
-            'applicant_id'    => $student->id,
-            'leave_type'      => 'izin',
-            'start_date'      => $date,
-            'end_date'        => $date,
-            'reason'          => 'Izin urusan keluarga',
+            'student_id' => $student->id,
+            'applicant_id' => $student->id,
+            'leave_type' => 'izin',
+            'start_date' => $date,
+            'end_date' => $date,
+            'reason' => 'Izin urusan keluarga',
             'status_approval' => 'pending',
         ]);
 
@@ -69,7 +69,7 @@ class AttendanceRecapEnhancementTest extends TestCase
         $this->assertFalse($status['is_final']);
 
         // View on web
-        $response = $this->actingAs($waka)->get('/waka/attendances/recap?date=' . $date);
+        $response = $this->actingAs($waka)->get('/waka/attendances/recap?date='.$date);
         $response->assertStatus(200);
         $response->assertSee('Belum Final');
     }
@@ -80,21 +80,21 @@ class AttendanceRecapEnhancementTest extends TestCase
         $class2 = Classes::skip(1)->first();
 
         $walas = User::create([
-            'username'       => 'walas_pdf_' . uniqid(),
-            'role_id'        => Role::WALI_KELAS,
-            'class_id'       => $class1->id,
-            'fullname'       => 'Wali Kelas PDF',
-            'nip_nisn'       => '198801012010011005',
-            'password'       => bcrypt('password123'),
+            'username' => 'walas_pdf_'.uniqid(),
+            'role_id' => Role::WALI_KELAS,
+            'class_id' => $class1->id,
+            'fullname' => 'Wali Kelas PDF',
+            'nip_nisn' => '198801012010011005',
+            'password' => bcrypt('password123'),
         ]);
 
         // Walas accessing own class PDF -> success (200 PDF stream)
-        $res = $this->actingAs($walas)->get('/api/attendances/pdf?class_id=' . $class1->id);
+        $res = $this->actingAs($walas)->get('/api/attendances/pdf?class_id='.$class1->id);
         $this->assertEquals(200, $res->status());
         $this->assertStringContainsString('application/pdf', $res->headers->get('content-type'));
 
         // Walas attempting to access another class PDF -> auto scoped to own class or succeeds for own class
-        $resOther = $this->actingAs($walas)->get('/api/attendances/pdf?class_id=' . $class2->id);
+        $resOther = $this->actingAs($walas)->get('/api/attendances/pdf?class_id='.$class2->id);
         // Because of auto-resolve $classId = $user->class_id in downloadPdf, it generates own class safely
         $this->assertEquals(200, $resOther->status());
     }
@@ -102,10 +102,10 @@ class AttendanceRecapEnhancementTest extends TestCase
     public function test_student_cannot_download_pdf(): void
     {
         $student = User::create([
-            'username'       => 'student_pdf_' . uniqid(),
-            'role_id'        => Role::SISWA,
-            'fullname'       => 'Siswa PDF Test',
-            'password'       => bcrypt('password123'),
+            'username' => 'student_pdf_'.uniqid(),
+            'role_id' => Role::SISWA,
+            'fullname' => 'Siswa PDF Test',
+            'password' => bcrypt('password123'),
         ]);
 
         $res = $this->actingAs($student)->get('/api/attendances/pdf?class_id=1');

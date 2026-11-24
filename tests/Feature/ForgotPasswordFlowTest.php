@@ -20,10 +20,10 @@ class ForgotPasswordFlowTest extends TestCase
         parent::setUp();
 
         $this->user = User::factory()->create([
-            'email'    => 'waka@smkn1bantul.sch.id',
+            'email' => 'waka@smkn1bantul.sch.id',
             'username' => 'waka_test',
             'password' => Hash::make('oldpassword123'),
-            'role_id'  => 1,
+            'role_id' => 1,
         ]);
     }
 
@@ -72,9 +72,9 @@ class ForgotPasswordFlowTest extends TestCase
     {
         // Buat record OTP
         PasswordOtp::create([
-            'email'      => 'waka@smkn1bantul.sch.id',
-            'otp_hash'   => Hash::make('123456'),
-            'attempts'   => 0,
+            'email' => 'waka@smkn1bantul.sch.id',
+            'otp_hash' => Hash::make('123456'),
+            'attempts' => 0,
             'expires_at' => now()->addMinutes(10),
         ]);
 
@@ -94,9 +94,9 @@ class ForgotPasswordFlowTest extends TestCase
     public function test_can_verify_correct_otp_even_with_whitespace_and_redirects_to_reset_form(): void
     {
         PasswordOtp::create([
-            'email'      => 'waka@smkn1bantul.sch.id',
-            'otp_hash'   => Hash::make('654321'),
-            'attempts'   => 0,
+            'email' => 'waka@smkn1bantul.sch.id',
+            'otp_hash' => Hash::make('654321'),
+            'attempts' => 0,
             'expires_at' => now()->addMinutes(10),
         ]);
 
@@ -121,7 +121,7 @@ class ForgotPasswordFlowTest extends TestCase
     public function test_can_access_reset_form_when_otp_verified(): void
     {
         $response = $this->withSession([
-            'otp_email'    => 'waka@smkn1bantul.sch.id',
+            'otp_email' => 'waka@smkn1bantul.sch.id',
             'otp_verified' => true,
         ])->get(route('password.reset.form'));
 
@@ -134,13 +134,13 @@ class ForgotPasswordFlowTest extends TestCase
     public function test_reset_password_rejects_unmatched_confirmation(): void
     {
         $response = $this->withSession([
-            'otp_email'    => 'waka@smkn1bantul.sch.id',
+            'otp_email' => 'waka@smkn1bantul.sch.id',
             'otp_verified' => true,
         ])->from(route('password.reset.form'))
-          ->post(route('password.reset.post'), [
-              'password'              => 'newpassword123',
-              'password_confirmation' => 'differentpass123',
-          ]);
+            ->post(route('password.reset.post'), [
+                'password' => 'newpassword123',
+                'password_confirmation' => 'differentpass123',
+            ]);
 
         $response->assertRedirect(route('password.reset.form'));
         $response->assertSessionHasErrors(['password']);
@@ -149,13 +149,13 @@ class ForgotPasswordFlowTest extends TestCase
     public function test_reset_password_rejects_same_as_old_password(): void
     {
         $response = $this->withSession([
-            'otp_email'    => 'waka@smkn1bantul.sch.id',
+            'otp_email' => 'waka@smkn1bantul.sch.id',
             'otp_verified' => true,
         ])->from(route('password.reset.form'))
-          ->post(route('password.reset.post'), [
-              'password'              => 'oldpassword123',
-              'password_confirmation' => 'oldpassword123',
-          ]);
+            ->post(route('password.reset.post'), [
+                'password' => 'oldpassword123',
+                'password_confirmation' => 'oldpassword123',
+            ]);
 
         $response->assertRedirect(route('password.reset.form'));
         $response->assertSessionHasErrors(['password']);
@@ -164,17 +164,17 @@ class ForgotPasswordFlowTest extends TestCase
     public function test_reset_password_success_updates_password_and_redirects_to_login(): void
     {
         PasswordOtp::create([
-            'email'      => 'waka@smkn1bantul.sch.id',
-            'otp_hash'   => Hash::make('654321'),
-            'attempts'   => 0,
+            'email' => 'waka@smkn1bantul.sch.id',
+            'otp_hash' => Hash::make('654321'),
+            'attempts' => 0,
             'expires_at' => now()->addMinutes(10),
         ]);
 
         $response = $this->withSession([
-            'otp_email'    => 'waka@smkn1bantul.sch.id',
+            'otp_email' => 'waka@smkn1bantul.sch.id',
             'otp_verified' => true,
         ])->post(route('password.reset.post'), [
-            'password'              => 'newsecurepassword999',
+            'password' => 'newsecurepassword999',
             'password_confirmation' => 'newsecurepassword999',
         ]);
 

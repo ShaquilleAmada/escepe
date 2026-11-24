@@ -45,8 +45,12 @@ class JournalController extends Controller
             'schedule.teacher:id,fullname',
             'schedule.schoolClass:id,class_name',
             'schedule.room:id,room_name',
-            'attendances.student:id,fullname,username',
+            'attendances.student:id,fullname,username,nip_nisn',
         ])->findOrFail($id);
+
+        if ($journal->photo_path) {
+            $journal->photo_url = route('waka.journals.photo', $journal->id);
+        }
 
         return response()->json([
             'success' => true,
@@ -56,19 +60,25 @@ class JournalController extends Controller
 
     public function getStudentsForSession(Request $request, $scheduleId)
     {
-        $schedule = Schedule::with(['schoolClass', 'room'])->findOrFail($scheduleId);
+        $schedule = Schedule::with(['schoolClass', 'room', 'teacher'])->findOrFail($scheduleId);
         $todayDate = date('Y-m-d');
 
         // Cek apakah jurnal sudah pernah diisi untuk hari ini
-        $existingJournal = Journal::where('schedule_id', $scheduleId)
+        $existingJournal = Journal::with(['attendances'])
+            ->where('schedule_id', $scheduleId)
             ->whereDate('date', $todayDate)
             ->first();
 
         $students = User::where('role_id', 3)
             ->where('class_id', $schedule->class_id)
-            ->select('id', 'fullname', 'username')
+            ->select('id', 'fullname', 'username', 'nip_nisn')
             ->orderBy('fullname')
             ->get();
+
+        // Ambil riwayat presensi yang sudah tersimpan jika jurnal sudah ada
+        $existingAttendances = $existingJournal 
+            ? $existingJournal->attendances->keyBy('student_id')
+            : collect();
 
         // Cari perizinan siswa yang SUDAH DI-APPROVE untuk hari ini
         $approvedLeaves = LeaveRequest::whereIn('student_id', $students->pluck('id'))
@@ -78,12 +88,18 @@ class JournalController extends Controller
             ->get()
             ->keyBy('student_id');
 
-        $formattedStudents = $students->map(function ($student) use ($approvedLeaves) {
+        $formattedStudents = $students->map(function ($student) use ($approvedLeaves, $existingAttendances) {
             $hasLeave = isset($approvedLeaves[$student->id]);
             $defaultStatus = 'hadir';
             $leaveReason = null;
+            $savedNotes = null;
 
-            if ($hasLeave) {
+            // Jika sudah ada presensi tersimpan di jurnal, prioritaskan status tersimpan
+            if (isset($existingAttendances[$student->id])) {
+                $savedAtt = $existingAttendances[$student->id];
+                $defaultStatus = $savedAtt->status;
+                $savedNotes = $savedAtt->notes;
+            } elseif ($hasLeave) {
                 $leaveInfo = $approvedLeaves[$student->id];
                 $leaveReason = $leaveInfo->reason;
                 $defaultStatus = ($leaveInfo->leave_type === 'sakit' || stripos($leaveReason ?? '', 'sakit') !== false) ? 'sakit' : 'izin';
@@ -93,11 +109,26 @@ class JournalController extends Controller
                 'id' => $student->id,
                 'fullname' => $student->fullname,
                 'username' => $student->username,
+                'nip_nisn' => $student->nip_nisn ?? '-',
                 'default_status' => $defaultStatus,
                 'is_approved_leave' => $hasLeave,
                 'leave_reason' => $leaveReason,
+                'notes' => $savedNotes,
             ];
         });
+
+        // Sertakan URL foto jurnal jika ada
+        if ($existingJournal && $existingJournal->photo_path) {
+            $existingJournal->photo_url = route('waka.journals.photo', $existingJournal->id);
+        }
+
+        $responseData = [
+            'schedule' => $schedule,
+            'date' => $todayDate,
+            'journal_exists' => ! is_null($existingJournal),
+            'existing_journal' => $existingJournal,
+            'students' => $formattedStudents,
+        ];
 
         return response()->json([
             'success' => true,
@@ -106,13 +137,7 @@ class JournalController extends Controller
             'journal_exists' => ! is_null($existingJournal),
             'existing_journal' => $existingJournal,
             'students' => $formattedStudents,
-            'data' => [
-                'schedule' => $schedule,
-                'date' => $todayDate,
-                'journal_exists' => ! is_null($existingJournal),
-                'existing_journal' => $existingJournal,
-                'students' => $formattedStudents,
-            ],
+            'data' => $responseData,
         ], 200);
     }
 

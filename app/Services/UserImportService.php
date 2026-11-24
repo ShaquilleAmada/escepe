@@ -2,13 +2,12 @@
 
 namespace App\Services;
 
-use App\Models\User;
-use App\Models\Role;
 use App\Models\Classes;
+use App\Models\Role;
+use App\Models\User;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Str;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Style\Alignment;
@@ -78,8 +77,8 @@ class UserImportService
         $allRows = [];
         foreach ($spreadsheet->getAllSheets() as $sheet) {
             $sheetRows = $sheet->toArray(null, true, true, false);
-            if (!empty($sheetRows)) {
-                if (!empty($allRows) && $this->isHeaderRow($sheetRows[0] ?? [])) {
+            if (! empty($sheetRows)) {
+                if (! empty($allRows) && $this->isHeaderRow($sheetRows[0] ?? [])) {
                     $sheetRows = array_slice($sheetRows, 1);
                 }
                 $allRows = array_merge($allRows, $sheetRows);
@@ -95,7 +94,7 @@ class UserImportService
     protected function parseAttendanceSpreadsheet(Spreadsheet $spreadsheet): array
     {
         $allStudents = [
-            ['No', 'Nama Lengkap', 'Email', 'Username', 'NIP / NIS', 'Role / Peran', 'Kelas', 'Keterangan Tambahan']
+            ['No', 'Nama Lengkap', 'Email', 'Username', 'NIP / NIS', 'Role / Peran', 'Kelas', 'Keterangan Tambahan'],
         ];
 
         foreach ($spreadsheet->getAllSheets() as $sheet) {
@@ -118,7 +117,7 @@ class UserImportService
         $foundClass = false;
 
         foreach ($rows as $row) {
-            $joined = implode(' ', array_filter(array_map('strval', (array)$row)));
+            $joined = implode(' ', array_filter(array_map('strval', (array) $row)));
             if (stripos($joined, 'DAFTAR HADIR SISWA') !== false || stripos($joined, 'PRESENSI SISWA') !== false) {
                 $foundTitle = true;
             }
@@ -142,16 +141,21 @@ class UserImportService
         $students = [];
 
         foreach ($rows as $row) {
-            if (!is_array($row)) continue;
+            if (! is_array($row)) {
+                continue;
+            }
 
             $joined = implode(' ', array_filter(array_map('strval', $row)));
             $trimmedJoined = trim($joined);
-            if ($trimmedJoined === '') continue;
+            if ($trimmedJoined === '') {
+                continue;
+            }
 
             // Cek jika baris merupakan pergantian header kelas: "KELAS : X RPL 1", "KELAS : XII AK 4", dll.
             if (preg_match('/KELAS\s*:\s*([^,\n\r]+)/i', $joined, $m)) {
                 $currentClass = trim($m[1]);
                 $currentClass = trim($currentClass, " \t\n\r\0\x0B:.,");
+
                 continue;
             }
 
@@ -160,7 +164,7 @@ class UserImportService
             // Col 1: NIS (numeric, 4-10 digit)
             // Col 2: Nama Siswa
             // Col 3: Gender (L/P)
-            $cells = array_values(array_map(fn($v) => trim((string)$v), $row));
+            $cells = array_values(array_map(fn ($v) => trim((string) $v), $row));
 
             $colNo = null;
             $colNis = null;
@@ -173,7 +177,7 @@ class UserImportService
                 $v2 = $cells[$i + 2] ?? '';
                 $v3 = $cells[$i + 3] ?? '';
 
-                if (is_numeric($v0) && (int)$v0 > 0 && (int)$v0 <= 60 && is_numeric($v1) && strlen($v1) >= 4 && strlen($v1) <= 12 && !empty($v2) && !is_numeric($v2)) {
+                if (is_numeric($v0) && (int) $v0 > 0 && (int) $v0 <= 60 && is_numeric($v1) && strlen($v1) >= 4 && strlen($v1) <= 12 && ! empty($v2) && ! is_numeric($v2)) {
                     $colNo = $i;
                     $colNis = $i + 1;
                     $colName = $i + 2;
@@ -183,7 +187,7 @@ class UserImportService
             }
 
             if ($colNo !== null) {
-                $no = (int)$cells[$colNo];
+                $no = (int) $cells[$colNo];
                 $nis = $cells[$colNis];
                 $rawName = $cells[$colName];
                 $gender = strtoupper($cells[$colGender] ?? '');
@@ -193,7 +197,7 @@ class UserImportService
                 $cleanName = trim(preg_replace('/\bNo NIS Terakhir\b/i', '', $cleanName));
                 $cleanName = trim(preg_replace('/\s+/', ' ', $cleanName));
 
-                if (!empty($cleanName)) {
+                if (! empty($cleanName)) {
                     $students[] = [
                         $no,                        // No
                         $cleanName,                 // Nama Lengkap
@@ -217,6 +221,7 @@ class UserImportService
     protected function isHeaderRow(array $row): bool
     {
         $joined = strtolower(implode(' ', array_filter(array_map('strval', $row))));
+
         return (str_contains($joined, 'nama') || str_contains($joined, 'name')) &&
                (str_contains($joined, 'user') || str_contains($joined, 'role') || str_contains($joined, 'peran') || str_contains($joined, 'nip') || str_contains($joined, 'nis'));
     }
@@ -226,7 +231,7 @@ class UserImportService
      */
     protected function parseDocx(string $filePath): array
     {
-        $zip = new \ZipArchive();
+        $zip = new \ZipArchive;
         if ($zip->open($filePath) !== true) {
             throw new \Exception('Gagal membuka file Word (.docx). File mungkin korup atau diproteksi.');
         }
@@ -234,11 +239,11 @@ class UserImportService
         $xml = $zip->getFromName('word/document.xml');
         $zip->close();
 
-        if (!$xml) {
+        if (! $xml) {
             throw new \Exception('File .docx tidak berisi struktur dokumen XML yang valid.');
         }
 
-        $dom = new \DOMDocument();
+        $dom = new \DOMDocument;
         libxml_use_internal_errors(true);
         $dom->loadXML($xml);
         libxml_clear_errors();
@@ -255,7 +260,7 @@ class UserImportService
                     foreach ($tcList as $tc) {
                         $row[] = trim($tc->textContent);
                     }
-                    if (!empty(array_filter($row, fn($c) => $c !== ''))) {
+                    if (! empty(array_filter($row, fn ($c) => $c !== ''))) {
                         $rows[] = $row;
                     }
                 }
@@ -265,13 +270,15 @@ class UserImportService
             $paragraphs = $dom->getElementsByTagName('p');
             foreach ($paragraphs as $p) {
                 $text = trim($p->textContent);
-                if (empty($text)) continue;
+                if (empty($text)) {
+                    continue;
+                }
 
                 if (str_contains($text, "\t")) {
                     $rows[] = array_map('trim', explode("\t", $text));
-                } elseif (str_contains($text, "|")) {
-                    $rows[] = array_map('trim', array_filter(explode("|", $text), fn($val) => trim($val) !== ''));
-                } elseif (str_contains($text, ",")) {
+                } elseif (str_contains($text, '|')) {
+                    $rows[] = array_map('trim', array_filter(explode('|', $text), fn ($val) => trim($val) !== ''));
+                } elseif (str_contains($text, ',')) {
                     $rows[] = str_getcsv($text);
                 }
             }
@@ -279,8 +286,9 @@ class UserImportService
 
         if ($this->isAttendanceRoster($rows)) {
             $students = $this->extractStudentsFromAttendanceRows($rows);
+
             return array_merge([
-                ['No', 'Nama Lengkap', 'Email', 'Username', 'NIP / NIS', 'Role / Peran', 'Kelas', 'Keterangan Tambahan']
+                ['No', 'Nama Lengkap', 'Email', 'Username', 'NIP / NIS', 'Role / Peran', 'Kelas', 'Keterangan Tambahan'],
             ], $students);
         }
 
@@ -292,7 +300,7 @@ class UserImportService
      */
     protected function parsePdf(string $filePath): array
     {
-        $parser = new PdfParser();
+        $parser = new PdfParser;
         $pdf = $parser->parseFile($filePath);
         $text = $pdf->getText();
 
@@ -301,13 +309,15 @@ class UserImportService
 
         foreach ($lines as $line) {
             $line = trim($line);
-            if (empty($line)) continue;
+            if (empty($line)) {
+                continue;
+            }
 
             // Header/pemisah umum pada PDF
             if (str_contains($line, "\t")) {
                 $cols = array_map('trim', explode("\t", $line));
-            } elseif (str_contains($line, "|")) {
-                $cols = array_map('trim', array_filter(explode("|", $line), fn($val) => trim($val) !== ''));
+            } elseif (str_contains($line, '|')) {
+                $cols = array_map('trim', array_filter(explode('|', $line), fn ($val) => trim($val) !== ''));
             } else {
                 // Pisahkan spasi ganda (2 atau lebih spasi) sebagai kolom
                 $cols = preg_split('/\s{2,}/', $line);
@@ -320,8 +330,9 @@ class UserImportService
 
         if ($this->isAttendanceRoster($rows)) {
             $students = $this->extractStudentsFromAttendanceRows($rows);
+
             return array_merge([
-                ['No', 'Nama Lengkap', 'Email', 'Username', 'NIP / NIS', 'Role / Peran', 'Kelas', 'Keterangan Tambahan']
+                ['No', 'Nama Lengkap', 'Email', 'Username', 'NIP / NIS', 'Role / Peran', 'Kelas', 'Keterangan Tambahan'],
             ], $students);
         }
 
@@ -348,9 +359,11 @@ class UserImportService
         ];
 
         foreach ($rawRows as $idx => $row) {
-            if (!is_array($row)) continue;
+            if (! is_array($row)) {
+                continue;
+            }
 
-            $normalizedRow = array_map(fn($v) => strtolower(trim((string)$v)), $row);
+            $normalizedRow = array_map(fn ($v) => strtolower(trim((string) $v)), $row);
             $joined = implode(' ', $normalizedRow);
 
             // Cek apakah baris ini kemungkinan adalah header
@@ -438,8 +451,8 @@ class UserImportService
             $displayRowNum = $headerIndex !== -1 ? ($headerIndex + 1 + $rowNum + 1) : ($rowNum + 1);
 
             // Bersihkan baris dari nilai null
-            $cells = array_values(array_map(fn($v) => trim((string)$v), $row));
-            if (empty(array_filter($cells, fn($c) => $c !== ''))) {
+            $cells = array_values(array_map(fn ($v) => trim((string) $v), $row));
+            if (empty(array_filter($cells, fn ($c) => $c !== ''))) {
                 continue; // Lewati baris kosong
             }
 
@@ -531,6 +544,7 @@ class UserImportService
                 }
                 $errors[] = "Baris #{$displayRowNum}: Nama lengkap kosong, dilewati.";
                 $skipped++;
+
                 continue;
             }
 
@@ -538,7 +552,7 @@ class UserImportService
             if (empty($rawEmail)) {
                 [$cleanName, $extractedEmail] = $this->splitNameAndEmail($rawName);
                 $rawName = $cleanName;
-                if (!empty($extractedEmail)) {
+                if (! empty($extractedEmail)) {
                     $rawEmail = $extractedEmail;
                 }
             }
@@ -546,7 +560,7 @@ class UserImportService
             // 1. Validasi & Normalisasi Email (kosongkan jika tidak ada di file)
             $email = null;
             $cleanEmail = trim(strtolower($rawEmail));
-            if (!empty($cleanEmail) && !in_array($cleanEmail, ['-', 'tidak ada', 'null', 'none'])) {
+            if (! empty($cleanEmail) && ! in_array($cleanEmail, ['-', 'tidak ada', 'null', 'none'])) {
                 if (filter_var($cleanEmail, FILTER_VALIDATE_EMAIL)) {
                     $email = $cleanEmail;
                 }
@@ -555,7 +569,7 @@ class UserImportService
             // 2. Validasi & Normalisasi NIP / NIS (kosongkan jika tidak ada di file)
             $nipNisn = null;
             $cleanNip = trim($rawNipNisn);
-            if (!empty($cleanNip) && !in_array(strtolower($cleanNip), ['-', 'tidak ada', 'null', 'none'])) {
+            if (! empty($cleanNip) && ! in_array(strtolower($cleanNip), ['-', 'tidak ada', 'null', 'none'])) {
                 $nipNisn = $cleanNip;
             }
 
@@ -571,7 +585,7 @@ class UserImportService
                 preg_match('/[,\.]/', $rawUserTrim) ||
                 strlen($rawUserTrim) > 25;
 
-            if (!$useAutoUsername) {
+            if (! $useAutoUsername) {
                 $username = strtolower($rawUserTrim);
                 $existingUser = $existingUsersByUsername[$username] ?? null;
             } else {
@@ -579,10 +593,10 @@ class UserImportService
             }
 
             // Jika belum ketemu user by username, cari by NIP/NISN atau Email jika ada
-            if (!$existingUser && $nipNisn !== null && isset($existingUsersByNip[$nipNisn])) {
+            if (! $existingUser && $nipNisn !== null && isset($existingUsersByNip[$nipNisn])) {
                 $existingUser = $existingUsersByNip[$nipNisn];
             }
-            if (!$existingUser && !empty($email) && isset($existingUsersByEmail[$email])) {
+            if (! $existingUser && ! empty($email) && isset($existingUsersByEmail[$email])) {
                 $existingUser = $existingUsersByEmail[$email];
             }
 
@@ -596,7 +610,7 @@ class UserImportService
                 // Cek konflik email
                 if ($email !== null && isset($existingUsersByEmail[$email])) {
                     $conflicting = $existingUsersByEmail[$email];
-                    if (!$existingUser || $conflicting->id !== $existingUser->id) {
+                    if (! $existingUser || $conflicting->id !== $existingUser->id) {
                         $errors[] = "Baris #{$displayRowNum} ({$rawName}): Email '{$email}' sudah terdaftar pada akun lain. Akun disimpan tanpa email.";
                         $email = null;
                     }
@@ -605,7 +619,7 @@ class UserImportService
                 // Cek konflik NIP/NIS
                 if ($nipNisn !== null && isset($existingUsersByNip[$nipNisn])) {
                     $conflicting = $existingUsersByNip[$nipNisn];
-                    if (!$existingUser || $conflicting->id !== $existingUser->id) {
+                    if (! $existingUser || $conflicting->id !== $existingUser->id) {
                         $errors[] = "Baris #{$displayRowNum} ({$rawName}): NIP/NIS '{$nipNisn}' sudah digunakan akun lain. Akun disimpan tanpa NIP/NIS.";
                         $nipNisn = null;
                     }
@@ -624,31 +638,35 @@ class UserImportService
 
                     // Update lookups
                     $existingUsersByUsername[strtolower($existingUser->username)] = $existingUser;
-                    if ($nipNisn) $existingUsersByNip[$nipNisn] = $existingUser;
-                    if ($email) $existingUsersByEmail[$email] = $existingUser;
+                    if ($nipNisn) {
+                        $existingUsersByNip[$nipNisn] = $existingUser;
+                    }
+                    if ($email) {
+                        $existingUsersByEmail[$email] = $existingUser;
+                    }
 
                     // Jika siswa, otomatis buat/sinkronkan akun Orang Tua terpisah (P + NIS)
                     if ($roleId == 3) {
-                        $studentNis = !empty($existingUser->nip_nisn) ? $existingUser->nip_nisn : $existingUser->username;
-                        if (!empty($studentNis)) {
-                            $parentUsername = 'P' . $studentNis;
+                        $studentNis = ! empty($existingUser->nip_nisn) ? $existingUser->nip_nisn : $existingUser->username;
+                        if (! empty($studentNis)) {
+                            $parentUsername = 'P'.$studentNis;
                             $parentUser = $existingUsersByUsername[strtolower($parentUsername)] ?? null;
-                            if (!$parentUser) {
+                            if (! $parentUser) {
                                 $parentUser = User::create([
-                                    'fullname'  => 'Orang Tua ' . $existingUser->fullname,
-                                    'username'  => $parentUsername,
-                                    'email'     => null,
-                                    'nip_nisn'  => null,
-                                    'password'  => $defaultPasswordHash,
-                                    'role_id'   => 4, // OrangTua
+                                    'fullname' => 'Orang Tua '.$existingUser->fullname,
+                                    'username' => $parentUsername,
+                                    'email' => null,
+                                    'nip_nisn' => null,
+                                    'password' => $defaultPasswordHash,
+                                    'role_id' => 4, // OrangTua
                                     'parent_id' => $existingUser->id,
-                                    'class_id'  => $classId,
+                                    'class_id' => $classId,
                                 ]);
                                 $existingUsersByUsername[strtolower($parentUsername)] = $parentUser;
                             } else {
                                 $parentUser->update([
                                     'parent_id' => $existingUser->id,
-                                    'class_id'  => $classId,
+                                    'class_id' => $classId,
                                 ]);
                             }
                             $existingUser->update(['parent_id' => $parentUser->id]);
@@ -659,41 +677,45 @@ class UserImportService
                 } else {
                     // Buat akun baru
                     $newUser = User::create([
-                        'fullname'  => $rawName,
-                        'username'  => $username,
-                        'email'     => $email,
-                        'password'  => $defaultPasswordHash,
-                        'role_id'   => $roleId,
-                        'nip_nisn'  => $nipNisn,
-                        'class_id'  => in_array($roleId, [2, 3, 5, 6]) ? $classId : null,
+                        'fullname' => $rawName,
+                        'username' => $username,
+                        'email' => $email,
+                        'password' => $defaultPasswordHash,
+                        'role_id' => $roleId,
+                        'nip_nisn' => $nipNisn,
+                        'class_id' => in_array($roleId, [2, 3, 5, 6]) ? $classId : null,
                     ]);
 
                     $existingUsersByUsername[strtolower($username)] = $newUser;
-                    if ($nipNisn) $existingUsersByNip[$nipNisn] = $newUser;
-                    if ($email) $existingUsersByEmail[$email] = $newUser;
+                    if ($nipNisn) {
+                        $existingUsersByNip[$nipNisn] = $newUser;
+                    }
+                    if ($email) {
+                        $existingUsersByEmail[$email] = $newUser;
+                    }
 
                     // Jika siswa, otomatis buat akun Orang Tua terpisah (P + NIS)
                     if ($roleId == 3) {
-                        $studentNis = !empty($nipNisn) ? $nipNisn : $username;
-                        if (!empty($studentNis)) {
-                            $parentUsername = 'P' . $studentNis;
+                        $studentNis = ! empty($nipNisn) ? $nipNisn : $username;
+                        if (! empty($studentNis)) {
+                            $parentUsername = 'P'.$studentNis;
                             $parentUser = $existingUsersByUsername[strtolower($parentUsername)] ?? null;
-                            if (!$parentUser) {
+                            if (! $parentUser) {
                                 $parentUser = User::create([
-                                    'fullname'  => 'Orang Tua ' . $rawName,
-                                    'username'  => $parentUsername,
-                                    'email'     => null,
-                                    'nip_nisn'  => null,
-                                    'password'  => $defaultPasswordHash,
-                                    'role_id'   => 4, // OrangTua
+                                    'fullname' => 'Orang Tua '.$rawName,
+                                    'username' => $parentUsername,
+                                    'email' => null,
+                                    'nip_nisn' => null,
+                                    'password' => $defaultPasswordHash,
+                                    'role_id' => 4, // OrangTua
                                     'parent_id' => $newUser->id,
-                                    'class_id'  => $classId,
+                                    'class_id' => $classId,
                                 ]);
                                 $existingUsersByUsername[strtolower($parentUsername)] = $parentUser;
                             } else {
                                 $parentUser->update([
                                     'parent_id' => $newUser->id,
-                                    'class_id'  => $classId,
+                                    'class_id' => $classId,
                                 ]);
                             }
                             $newUser->update(['parent_id' => $parentUser->id]);
@@ -703,7 +725,7 @@ class UserImportService
                     $created++;
                 }
             } catch (\Throwable $e) {
-                $errors[] = "Baris #{$displayRowNum} ({$rawName}): Terjadi kesalahan - " . $e->getMessage();
+                $errors[] = "Baris #{$displayRowNum} ({$rawName}): Terjadi kesalahan - ".$e->getMessage();
                 $skipped++;
             }
         }
@@ -726,10 +748,12 @@ class UserImportService
         if (preg_match('/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/', $str, $matches)) {
             $email = $matches[0];
             // Hapus email dan kurung dari nama
-            $name = trim(preg_replace('/[\(\[\<]?\s*' . preg_quote($email, '/') . '\s*[\)\]\>]?/', '', $str));
+            $name = trim(preg_replace('/[\(\[\<]?\s*'.preg_quote($email, '/').'\s*[\)\]\>]?/', '', $str));
             $name = trim($name, " \t\n\r\0\x0B-:,");
+
             return [$name, $email];
         }
+
         return [$str, ''];
     }
 
@@ -815,11 +839,11 @@ class UserImportService
             'm.kom.', 'm.kom', 's.t.', 's.t', 'm.t.', 'm.t', 's.ag.', 's.ag', 'm.ag.', 'm.ag',
             's.si.', 's.si', 'm.si.', 'm.si', 's.sn.', 's.sn', 'm.sn.', 'm.sn', 's.ip.', 's.ip',
             'm.ip.', 'm.ip', 's.sos.', 's.sos', 's.s.', 's.s', 'm.eng.', 'm.eng', 'm.s.i.', 'm.s.i',
-            'm.acc.', 'm.acc', 'mm.', 'mm', 'b.a.', 'b.a', 'ph.d.', 'ph.d'
+            'm.acc.', 'm.acc', 'mm.', 'mm', 'b.a.', 'b.a', 'ph.d.', 'ph.d',
         ];
 
         foreach ($titles as $t) {
-            $name = preg_replace('/\b' . preg_quote($t, '/') . '\b/i', '', $name);
+            $name = preg_replace('/\b'.preg_quote($t, '/').'\b/i', '', $name);
         }
 
         // 5. Bersihkan tanda baca titik, koma, strip yang tertinggal
@@ -837,6 +861,7 @@ class UserImportService
 
         // Fallback jika tidak ada kata alfabet yang cocok
         $fallback = strtolower(preg_replace('/[^a-zA-Z0-9]/', '', $fullname));
+
         return substr($fallback, 0, 15) ?: 'user';
     }
 
@@ -866,11 +891,11 @@ class UserImportService
             'm.kom.', 'm.kom', 's.t.', 's.t', 'm.t.', 'm.t', 's.ag.', 's.ag', 'm.ag.', 'm.ag',
             's.si.', 's.si', 'm.si.', 'm.si', 's.sn.', 's.sn', 'm.sn.', 'm.sn', 's.ip.', 's.ip',
             'm.ip.', 'm.ip', 's.sos.', 's.sos', 's.s.', 's.s', 'm.eng.', 'm.eng', 'm.s.i.', 'm.s.i',
-            'm.acc.', 'm.acc', 'mm.', 'mm', 'b.a.', 'b.a', 'ph.d.', 'ph.d'
+            'm.acc.', 'm.acc', 'mm.', 'mm', 'b.a.', 'b.a', 'ph.d.', 'ph.d',
         ];
 
         foreach ($titles as $t) {
-            $name = preg_replace('/\b' . preg_quote($t, '/') . '\b/i', '', $name);
+            $name = preg_replace('/\b'.preg_quote($t, '/').'\b/i', '', $name);
         }
 
         // 5. Bersihkan tanda baca titik, koma, strip yang tertinggal
@@ -893,9 +918,10 @@ class UserImportService
             $u = $base;
             $cnt = 1;
             while (isset($existingUsernames[$u]) || User::where('username', $u)->exists()) {
-                $u = $base . $cnt++;
+                $u = $base.$cnt++;
             }
             $existingUsernames[$u] = true;
+
             return $u;
         }
 
@@ -906,18 +932,20 @@ class UserImportService
         // Aturan 1: nama pertama_nama kedua (atau nama pertama jika hanya 1 kata)
         $candidate = ($word2 !== null) ? "{$word1}_{$word2}" : $word1;
 
-        $isTaken = fn($usr) => isset($existingUsernames[$usr]) || User::where('username', $usr)->exists();
+        $isTaken = fn ($usr) => isset($existingUsernames[$usr]) || User::where('username', $usr)->exists();
 
-        if (!$isTaken($candidate)) {
+        if (! $isTaken($candidate)) {
             $existingUsernames[$candidate] = true;
+
             return $candidate;
         }
 
         // Aturan 2: Jika 2 nama depan sama (sudah dipakai) dan ada kata ke-3 -> nama pertama_nama kedua_nama ketiga
         if ($word3 !== null) {
             $candidate3 = "{$word1}_{$word2}_{$word3}";
-            if (!$isTaken($candidate3)) {
+            if (! $isTaken($candidate3)) {
                 $existingUsernames[$candidate3] = true;
+
                 return $candidate3;
             }
         }
@@ -925,13 +953,14 @@ class UserImportService
         // Aturan 3: Jika masih bentrok atau tidak ada kata ke-3, tambahkan angka pembeda berurutan
         $baseCollision = ($word3 !== null) ? "{$word1}_{$word2}_{$word3}" : $candidate;
         $cnt = 1;
-        $finalUsername = $baseCollision . $cnt;
+        $finalUsername = $baseCollision.$cnt;
         while ($isTaken($finalUsername)) {
             $cnt++;
-            $finalUsername = $baseCollision . $cnt;
+            $finalUsername = $baseCollision.$cnt;
         }
 
         $existingUsernames[$finalUsername] = true;
+
         return $finalUsername;
     }
 
@@ -960,19 +989,23 @@ class UserImportService
 
         // 2. Pencocokan jurusan AK -> AKL (contoh: X AK 1 -> X AKL 1)
         if (preg_match('/(x|xi|xii)ak(\d+)/i', $cleanNorm, $m)) {
-            $aklNorm = $m[1] . 'akl' . $m[2];
+            $aklNorm = $m[1].'akl'.$m[2];
             foreach ($classes as $c) {
                 $cNorm = str_replace([' ', '-', '_'], '', strtolower($c->class_name));
-                if ($cNorm === $aklNorm) return $c->id;
+                if ($cNorm === $aklNorm) {
+                    return $c->id;
+                }
             }
         }
 
         // 3. Pencocokan rombel tunggal tanpa nomor rombel (contoh: XII LPS -> XII LPS 1, X BD -> X BD 1)
         if (preg_match('/^(x|xi|xii)(lps|bd)$/i', $cleanNorm, $m)) {
-            $candNorm = $m[1] . $m[2] . '1';
+            $candNorm = $m[1].$m[2].'1';
             foreach ($classes as $c) {
                 $cNorm = str_replace([' ', '-', '_'], '', strtolower($c->class_name));
-                if ($cNorm === $candNorm) return $c->id;
+                if ($cNorm === $candNorm) {
+                    return $c->id;
+                }
             }
         }
 
@@ -986,14 +1019,17 @@ class UserImportService
 
         // 5. Otomatis buat kelas baru jika belum ada di database
         $grade = 'X';
-        if (str_starts_with(strtoupper($classText), 'XII') || str_starts_with($classText, '12')) $grade = 'XII';
-        elseif (str_starts_with(strtoupper($classText), 'XI') || str_starts_with($classText, '11')) $grade = 'XI';
+        if (str_starts_with(strtoupper($classText), 'XII') || str_starts_with($classText, '12')) {
+            $grade = 'XII';
+        } elseif (str_starts_with(strtoupper($classText), 'XI') || str_starts_with($classText, '11')) {
+            $grade = 'XI';
+        }
 
         $major = trim(preg_replace('/^(X|XI|XII|10|11|12)\s*/i', '', $classText));
         $newClass = Classes::create([
             'class_name' => $classText,
-            'grade'      => $grade,
-            'major'      => $major ?: 'Umum',
+            'grade' => $grade,
+            'major' => $major ?: 'Umum',
         ]);
 
         if (is_object($classes) && method_exists($classes, 'push')) {
@@ -1013,21 +1049,28 @@ class UserImportService
     {
         $gradeWeight = function (string $c) {
             $upper = strtoupper(trim($c));
-            if (str_starts_with($upper, 'X ') || str_starts_with($upper, '10 ') || $upper === 'X' || $upper === '10') return 1;
-            if (str_starts_with($upper, 'XI ') || str_starts_with($upper, '11 ') || $upper === 'XI' || $upper === '11') return 2;
-            if (str_starts_with($upper, 'XII ') || str_starts_with($upper, '12 ') || $upper === 'XII' || $upper === '12') return 3;
+            if (str_starts_with($upper, 'X ') || str_starts_with($upper, '10 ') || $upper === 'X' || $upper === '10') {
+                return 1;
+            }
+            if (str_starts_with($upper, 'XI ') || str_starts_with($upper, '11 ') || $upper === 'XI' || $upper === '11') {
+                return 2;
+            }
+            if (str_starts_with($upper, 'XII ') || str_starts_with($upper, '12 ') || $upper === 'XII' || $upper === '12') {
+                return 3;
+            }
+
             return 4;
         };
 
         usort($dataRows, function ($a, $b) use ($colMap, $gradeWeight) {
-            $cellsA = array_values(array_map('strval', (array)$a));
-            $cellsB = array_values(array_map('strval', (array)$b));
+            $cellsA = array_values(array_map('strval', (array) $a));
+            $cellsB = array_values(array_map('strval', (array) $b));
 
             $classA = '';
             $classB = '';
             if ($colMap['class'] !== null && isset($a[$colMap['class']], $b[$colMap['class']])) {
-                $classA = trim((string)$a[$colMap['class']]);
-                $classB = trim((string)$b[$colMap['class']]);
+                $classA = trim((string) $a[$colMap['class']]);
+                $classB = trim((string) $b[$colMap['class']]);
             } else {
                 $classA = trim($cellsA[6] ?? '');
                 $classB = trim($cellsB[6] ?? '');
@@ -1036,8 +1079,8 @@ class UserImportService
             $nameA = '';
             $nameB = '';
             if ($colMap['name'] !== null && isset($a[$colMap['name']], $b[$colMap['name']])) {
-                $nameA = trim((string)$a[$colMap['name']]);
-                $nameB = trim((string)$b[$colMap['name']]);
+                $nameA = trim((string) $a[$colMap['name']]);
+                $nameB = trim((string) $b[$colMap['name']]);
             } else {
                 $nameA = trim($cellsA[1] ?? '');
                 $nameB = trim($cellsB[1] ?? '');
@@ -1070,7 +1113,7 @@ class UserImportService
      */
     public function generateTemplateSpreadsheet(): Spreadsheet
     {
-        $spreadsheet = new Spreadsheet();
+        $spreadsheet = new Spreadsheet;
         $spreadsheet->getProperties()
             ->setCreator('Sistem School Class Progress (SCP)')
             ->setTitle('Template Import Pengguna')
@@ -1084,7 +1127,7 @@ class UserImportService
         // Header Judul & Instruksi
         $sheet->setCellValue('A1', 'TEMPLATE IMPORT DATA PENGGUNA - SISTEM SCHOOL CLASS PROGRESS (SCP)');
         $sheet->setCellValue('A2', 'Petunjuk: Isi data pengguna sesuai kolom di bawah ini. Untuk Siswa, isi kolom NIP / NIS dengan NIS siswa (4-6 digit). Akun Orang Tua otomatis dibuatkan terpisah dan terhubung ke siswa dengan username "P" + NIS (contoh: NIS 5412 -> akun ortu P5412). Guru yang menjadi Wali Kelas otomatis terdeteksi jika mengisi kolom Kelas atau mencantumkan Wali Kelas di Keterangan Tambahan. Password awal: "password123".');
-        
+
         $sheet->mergeCells('A1:H1');
         $sheet->mergeCells('A2:H2');
 

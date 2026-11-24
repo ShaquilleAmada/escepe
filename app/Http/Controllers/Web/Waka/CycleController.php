@@ -3,11 +3,11 @@
 namespace App\Http\Controllers\Web\Waka;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
-use App\Models\SystemConfiguration;
+use App\Models\Classes;
 use App\Models\CycleHistory;
 use App\Models\Schedule;
-use App\Models\Classes;
+use App\Models\SystemConfiguration;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
 class CycleController extends Controller
@@ -18,7 +18,7 @@ class CycleController extends Controller
     public function index(Request $request)
     {
         $config = SystemConfiguration::first();
-        if (!$config) {
+        if (! $config) {
             $config = SystemConfiguration::create([
                 'active_cycle' => 'Putaran 1',
                 'is_schedule_locked' => false,
@@ -50,11 +50,11 @@ class CycleController extends Controller
         $matrixClasses = Classes::whereHas('schedules', function ($q) use ($activeCycle) {
             $q->where('cycle_type', $activeCycle)->orWhere('cycle_type', 'semua');
         })
-        ->orderByRaw("FIELD(grade_level, 'X', 'XI', 'XII')")
-        ->orderBy('major')
-        ->orderBy('section')
-        ->orderBy('class_name')
-        ->get();
+            ->orderByRaw("FIELD(grade_level, 'X', 'XI', 'XII')")
+            ->orderBy('major')
+            ->orderBy('section')
+            ->orderBy('class_name')
+            ->get();
 
         $classStatusMatrix = [];
         foreach ($matrixClasses as $c) {
@@ -68,6 +68,7 @@ class CycleController extends Controller
             $hasLabOrKK = $schedules->first(function ($s) {
                 $sub = strtolower($s->subject);
                 $rm = strtolower($s->room->room_name ?? '');
+
                 return str_contains($sub, 'kk ') || str_contains($sub, 'ddpk') || str_contains($sub, 'praktik') || str_contains($rm, 'lab');
             });
 

@@ -3,15 +3,16 @@
 namespace App\Http\Controllers\Web\Waka;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
 use App\Models\Room;
 use App\Services\RoomMatrixImportService;
+use Illuminate\Http\Request;
 
 class RoomController extends Controller
 {
     public function index()
     {
         $rooms = Room::withCount('schedules')->orderBy('room_name')->paginate(10);
+
         return view('waka.rooms.index', compact('rooms'));
     }
 
@@ -31,7 +32,7 @@ class RoomController extends Controller
                 "Berhasil sinkronisasi matriks ruangan: {$result['unique_rooms']} ruangan terdata ({$result['new_rooms']} ruangan baru), {$result['updated_schedules']} sesi jadwal diperbarui ke ruang fisik sebenarnya."
             );
         } catch (\Throwable $e) {
-            return redirect()->back()->with('error', 'Gagal memproses file matriks ruangan: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Gagal memproses file matriks ruangan: '.$e->getMessage());
         }
     }
 
@@ -53,7 +54,7 @@ class RoomController extends Controller
         $room = Room::findOrFail($id);
 
         $request->validate([
-            'room_name' => 'required|string|max:50|unique:rooms,room_name,' . $room->id,
+            'room_name' => 'required|string|max:50|unique:rooms,room_name,'.$room->id,
         ]);
 
         $room->update([

@@ -3,13 +3,13 @@
 namespace App\Http\Controllers\Web\Waka;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
-use App\Models\Schedule;
-use App\Models\User;
 use App\Models\Classes;
 use App\Models\Room;
+use App\Models\Schedule;
 use App\Models\SystemConfiguration;
+use App\Models\User;
 use App\Services\ScheduleImportService;
+use Illuminate\Http\Request;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 
 class ScheduleController extends Controller
@@ -23,10 +23,33 @@ class ScheduleController extends Controller
 
         $query = Schedule::with(['teacher', 'schoolClass', 'room']);
 
-        if ($request->filled('day')) {
+        $todayActive = false;
+        if ($request->boolean('today') || $request->input('today') === '1') {
+            $todayActive = true;
+            $dayMap = [
+                'Monday' => 'Senin',
+                'Tuesday' => 'Selasa',
+                'Wednesday' => 'Rabu',
+                'Thursday' => 'Kamis',
+                'Friday' => 'Jumat',
+                'Saturday' => 'Sabtu',
+                'Sunday' => 'Minggu',
+            ];
+            $currentDayEn = date('l');
+            $currentDayId = $dayMap[$currentDayEn] ?? 'Senin';
+            $query->where('day_of_week', $currentDayId);
+
+            $activeCycle = $config->active_cycle ?? 'Putaran 1';
+            $query->where(function ($q) use ($activeCycle) {
+                $q->where('cycle_type', $activeCycle)
+                    ->orWhere('cycle_type', 'semua');
+            });
+        }
+
+        if ($request->filled('day') && ! $todayActive) {
             $query->where('day_of_week', $request->day);
         }
-        if ($request->filled('cycle')) {
+        if ($request->filled('cycle') && ! $todayActive) {
             $query->where('cycle_type', $request->cycle);
         }
         if ($request->filled('class_id')) {
@@ -36,7 +59,7 @@ class ScheduleController extends Controller
             $query->whereHas('schoolClass', function ($q) use ($request) {
                 $q->where(function ($sub) use ($request) {
                     $sub->where('grade_level', $request->grade_level)
-                        ->orWhere('class_name', 'LIKE', $request->grade_level . ' %');
+                        ->orWhere('class_name', 'LIKE', $request->grade_level.' %');
                 });
             });
         }
@@ -44,7 +67,7 @@ class ScheduleController extends Controller
             $query->whereHas('schoolClass', function ($q) use ($request) {
                 $q->where(function ($sub) use ($request) {
                     $sub->where('major', strtoupper($request->major))
-                        ->orWhere('class_name', 'LIKE', '% ' . $request->major . ' %');
+                        ->orWhere('class_name', 'LIKE', '% '.$request->major.' %');
                 });
             });
         }
@@ -52,7 +75,7 @@ class ScheduleController extends Controller
             $query->whereHas('schoolClass', function ($q) use ($request) {
                 $q->where(function ($sub) use ($request) {
                     $sub->where('section', $request->section)
-                        ->orWhere('class_name', 'LIKE', '% ' . $request->section);
+                        ->orWhere('class_name', 'LIKE', '% '.$request->section);
                 });
             });
         }
@@ -82,7 +105,8 @@ class ScheduleController extends Controller
             'rooms',
             'gradeLevels',
             'majors',
-            'sections'
+            'sections',
+            'todayActive'
         ));
     }
 
@@ -115,8 +139,8 @@ class ScheduleController extends Controller
         // Jika input jam ke- (period) dipilih, otomatis ambil start_time dan end_time
         if ($request->filled('start_period') && $request->filled('end_period') && $request->filled('day_of_week')) {
             $day = $request->day_of_week;
-            $sp = (int)$request->start_period;
-            $ep = (int)$request->end_period;
+            $sp = (int) $request->start_period;
+            $ep = (int) $request->end_period;
             $periods = Schedule::DAILY_PERIODS[$day] ?? [];
             if (isset($periods[$sp]) && isset($periods[$ep])) {
                 $request->merge([
@@ -151,7 +175,7 @@ class ScheduleController extends Controller
         );
 
         if ($conflictError) {
-            return back()->withInput()->withErrors(['conflict' => $conflictError]);
+            return back()->withInput()->with('error', $conflictError)->withErrors(['conflict' => $conflictError]);
         }
 
         Schedule::create($validated);
@@ -191,8 +215,8 @@ class ScheduleController extends Controller
 
         if ($request->filled('start_period') && $request->filled('end_period') && $request->filled('day_of_week')) {
             $day = $request->day_of_week;
-            $sp = (int)$request->start_period;
-            $ep = (int)$request->end_period;
+            $sp = (int) $request->start_period;
+            $ep = (int) $request->end_period;
             $periods = Schedule::DAILY_PERIODS[$day] ?? [];
             if (isset($periods[$sp]) && isset($periods[$ep])) {
                 $request->merge([
@@ -228,7 +252,7 @@ class ScheduleController extends Controller
         );
 
         if ($conflictError) {
-            return back()->withInput()->withErrors(['conflict' => $conflictError]);
+            return back()->withInput()->with('error', $conflictError)->withErrors(['conflict' => $conflictError]);
         }
 
         $schedule->update($validated);
@@ -269,12 +293,12 @@ class ScheduleController extends Controller
         }
 
         $request->validate([
-            'file' => 'required|file|mimes:xlsx,xls,csv,docx,pdf|max:10240',
+            'file' => 'required|file|mimes:xlsx,xls,csv|max:10240',
             'cycle_type' => 'nullable|string|in:Putaran 1,Putaran 2,semua,auto',
         ], [
             'file.required' => 'Silakan pilih file jadwal yang ingin diimpor.',
-            'file.mimes'    => 'Format file tidak didukung! Harap unggah file berekstensi Excel (.xlsx, .xls, .csv), Word (.docx), atau PDF (.pdf).',
-            'file.max'      => 'Ukuran file melebihi batas maksimum (10 MB).',
+            'file.mimes' => 'Format file tidak didukung! Harap unggah file template resmi Excel (.xlsx, .xls) atau CSV (.csv). File Word (.docx) atau PDF tidak diperbolehkan.',
+            'file.max' => 'Ukuran file melebihi batas maksimum (10 MB).',
         ]);
 
         try {
@@ -287,7 +311,7 @@ class ScheduleController extends Controller
                 $message .= " Dilewati: {$result['skipped']}.";
             }
 
-            if (!empty($result['errors'])) {
+            if (! empty($result['errors'])) {
                 return redirect()->route('waka.schedules.index')
                     ->with('warning', $message)
                     ->with('import_errors', $result['errors']);
@@ -295,7 +319,7 @@ class ScheduleController extends Controller
 
             return redirect()->route('waka.schedules.index')->with('success', $message);
         } catch (\Throwable $e) {
-            return redirect()->route('waka.schedules.index')->with('error', 'Gagal memproses file impor: ' . $e->getMessage());
+            return redirect()->route('waka.schedules.index')->with('error', 'Gagal memproses file impor: '.$e->getMessage());
         }
     }
 
@@ -320,7 +344,72 @@ class ScheduleController extends Controller
      */
     private function checkScheduleConflict($teacherId, $classId, $roomId, $day, $startTime, $endTime, $cycleType, $ignoreId = null)
     {
-        // Proteksi bentrok dinonaktifkan sesuai permintaan sekolah
+        $cleanStart = substr($startTime, 0, 5);
+        $cleanEnd = substr($endTime, 0, 5);
+
+        // Helper irisan waktu & siklus:
+        $baseConflictQuery = function ($query) use ($day, $cleanStart, $cleanEnd, $cycleType, $ignoreId) {
+            $query->where('day_of_week', $day);
+            if ($ignoreId) {
+                $query->where('id', '!=', $ignoreId);
+            }
+            if ($cycleType !== 'semua') {
+                $query->whereIn('cycle_type', [$cycleType, 'semua']);
+            }
+            $query->where('start_time', '<', $cleanEnd)
+                ->where('end_time', '>', $cleanStart);
+        };
+
+        // 1. Bentrok Guru: Guru yang sama di jam & hari yang sama
+        if ($teacherId) {
+            $teacherConflict = Schedule::with(['teacher', 'schoolClass', 'room'])
+                ->where('teacher_id', $teacherId)
+                ->where($baseConflictQuery)
+                ->first();
+
+            if ($teacherConflict) {
+                $tName = $teacherConflict->teacher->fullname ?? 'Guru bersangkutan';
+                $cName = $teacherConflict->schoolClass->class_name ?? 'Kelas lain';
+                $rName = $teacherConflict->room->room_name ?? 'Tanpa Ruang';
+                $tRange = substr($teacherConflict->start_time, 0, 5).' - '.substr($teacherConflict->end_time, 0, 5);
+
+                return "Bentrok Guru! {$tName} sudah memiliki jadwal mengajar di kelas {$cName} ({$teacherConflict->subject}, {$rName}) pada hari {$day} pukul {$tRange} ({$teacherConflict->cycle_type}).";
+            }
+        }
+
+        // 2. Bentrok Ruangan: Ruangan yang sama dipakai kelas lain di jam yang sama (jika ruangan dipilih)
+        if ($roomId) {
+            $roomConflict = Schedule::with(['teacher', 'schoolClass', 'room'])
+                ->where('room_id', $roomId)
+                ->where($baseConflictQuery)
+                ->first();
+
+            if ($roomConflict) {
+                $rName = $roomConflict->room->room_name ?? 'Ruang bersangkutan';
+                $cName = $roomConflict->schoolClass->class_name ?? 'Kelas lain';
+                $tName = $roomConflict->teacher->fullname ?? 'Guru lain';
+                $tRange = substr($roomConflict->start_time, 0, 5).' - '.substr($roomConflict->end_time, 0, 5);
+
+                return "Bentrok Ruangan! Ruang {$rName} sudah digunakan oleh kelas {$cName} dengan pengajar {$tName} pada hari {$day} pukul {$tRange} ({$roomConflict->cycle_type}).";
+            }
+        }
+
+        // 3. Bentrok Kelas: Rombel yang sama diajar mapel lain di jam yang sama
+        if ($classId) {
+            $classConflict = Schedule::with(['teacher', 'schoolClass', 'room'])
+                ->where('class_id', $classId)
+                ->where($baseConflictQuery)
+                ->first();
+
+            if ($classConflict) {
+                $cName = $classConflict->schoolClass->class_name ?? 'Kelas bersangkutan';
+                $tName = $classConflict->teacher->fullname ?? 'Guru lain';
+                $tRange = substr($classConflict->start_time, 0, 5).' - '.substr($classConflict->end_time, 0, 5);
+
+                return "Bentrok Kelas! Kelas {$cName} sudah memiliki jadwal pelajaran {$classConflict->subject} bersama {$tName} pada hari {$day} pukul {$tRange} ({$classConflict->cycle_type}).";
+            }
+        }
+
         return null;
     }
 }

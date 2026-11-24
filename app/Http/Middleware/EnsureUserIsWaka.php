@@ -15,7 +15,7 @@ class EnsureUserIsWaka
      */
     public function handle(Request $request, Closure $next): Response
     {
-        if (!Auth::check() || Auth::user()->role_id != 1) {
+        if (! Auth::check() || Auth::user()->role_id != 1) {
             Auth::logout();
             $request->session()->invalidate();
             $request->session()->regenerateToken();

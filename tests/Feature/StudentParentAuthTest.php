@@ -2,11 +2,11 @@
 
 namespace Tests\Feature;
 
-use Tests\TestCase;
-use App\Models\User;
 use App\Models\Classes;
-use Illuminate\Support\Facades\Hash;
+use App\Models\User;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
+use Illuminate\Support\Facades\Hash;
+use Tests\TestCase;
 
 class StudentParentAuthTest extends TestCase
 {
@@ -39,7 +39,7 @@ class StudentParentAuthTest extends TestCase
             'data' => [
                 'id' => $student->id,
                 'role_id' => 3,
-            ]
+            ],
         ]);
     }
 
@@ -82,7 +82,7 @@ class StudentParentAuthTest extends TestCase
             'data' => [
                 'id' => $parent->id,
                 'role_id' => 4,
-            ]
+            ],
         ]);
     }
 
@@ -113,7 +113,7 @@ class StudentParentAuthTest extends TestCase
             'data' => [
                 'role_id' => 4,
                 'username' => 'P4892',
-            ]
+            ],
         ]);
 
         // Verify parent is created and linked to child
@@ -154,7 +154,7 @@ class StudentParentAuthTest extends TestCase
         $studentRes->assertStatus(403);
         $studentRes->assertJson([
             'success' => false,
-            'message' => 'Akun tidak aktif karena siswa telah dinyatakan lulus.'
+            'message' => 'Akun tidak aktif karena siswa telah dinyatakan lulus.',
         ]);
 
         // Parent login attempt should fail with 403

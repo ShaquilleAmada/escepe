@@ -3,15 +3,15 @@
 namespace App\Http\Controllers\Web\Waka;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
-use App\Models\User;
 use App\Models\Classes;
+use App\Models\Journal;
+use App\Models\Role;
 use App\Models\Room;
 use App\Models\Schedule;
-use App\Models\Journal;
 use App\Models\SystemConfiguration;
-use App\Models\Role;
+use App\Models\User;
 use Carbon\Carbon;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
 class DashboardController extends Controller
@@ -20,7 +20,7 @@ class DashboardController extends Controller
     {
         // 1. Ambil atau Buat Konfigurasi Sistem
         $config = SystemConfiguration::first();
-        if (!$config) {
+        if (! $config) {
             $config = SystemConfiguration::create([
                 'active_cycle' => 'Putaran 1',
                 'is_schedule_locked' => false,
@@ -57,7 +57,7 @@ class DashboardController extends Controller
             ->where('day_of_week', $todayIndo)
             ->where(function ($query) use ($config) {
                 $query->where('cycle_type', $config->active_cycle)
-                      ->orWhere('cycle_type', 'semua');
+                    ->orWhere('cycle_type', 'semua');
             })
             ->orderBy('class_id', 'asc')
             ->orderBy('start_time', 'asc')
@@ -72,8 +72,8 @@ class DashboardController extends Controller
                 ->whereDate('date', $todayDate)
                 ->exists();
 
-            $startCarbon = Carbon::parse($todayDate . ' ' . $sch->start_time, 'Asia/Jakarta');
-            $endCarbon = Carbon::parse($todayDate . ' ' . $sch->end_time, 'Asia/Jakarta');
+            $startCarbon = Carbon::parse($todayDate.' '.$sch->start_time, 'Asia/Jakarta');
+            $endCarbon = Carbon::parse($todayDate.' '.$sch->end_time, 'Asia/Jakarta');
             $graceEnd = $endCarbon->copy()->addMinutes(30);
 
             if ($hasJournal) {
@@ -131,7 +131,7 @@ class DashboardController extends Controller
                 'subject' => $sch->subject,
                 'class_name' => $sch->schoolClass->class_name ?? '-',
                 'room_name' => $sch->room->room_name ?? '-',
-                'time' => substr($sch->start_time, 0, 5) . ' - ' . substr($sch->end_time, 0, 5),
+                'time' => substr($sch->start_time, 0, 5).' - '.substr($sch->end_time, 0, 5),
                 'end_time' => substr($sch->end_time, 0, 5),
                 'late_minutes' => $lateMinutes,
                 'status_key' => $statusKey,
@@ -148,6 +148,7 @@ class DashboardController extends Controller
             if ($a['sort_order'] === $b['sort_order']) {
                 return strcmp($a['time'], $b['time']);
             }
+
             return $a['sort_order'] <=> $b['sort_order'];
         });
 
@@ -164,15 +165,15 @@ class DashboardController extends Controller
 
         // 7. Matriks Pemetaan Status Kelas Berdasarkan Siklus Aktif (Dinamis untuk seluruh rombel)
         $activeCycle = $config->active_cycle ?? 'Putaran 1';
-        
+
         $matrixClasses = Classes::whereHas('schedules', function ($q) use ($activeCycle) {
             $q->where('cycle_type', $activeCycle)->orWhere('cycle_type', 'semua');
         })
-        ->orderByRaw("FIELD(grade_level, 'X', 'XI', 'XII')")
-        ->orderBy('major')
-        ->orderBy('section')
-        ->orderBy('class_name')
-        ->get();
+            ->orderByRaw("FIELD(grade_level, 'X', 'XI', 'XII')")
+            ->orderBy('major')
+            ->orderBy('section')
+            ->orderBy('class_name')
+            ->get();
 
         $classStatusMatrix = [];
         foreach ($matrixClasses as $c) {
@@ -186,6 +187,7 @@ class DashboardController extends Controller
             $hasLabOrKK = $schedules->first(function ($s) {
                 $sub = strtolower($s->subject);
                 $rm = strtolower($s->room->room_name ?? '');
+
                 return str_contains($sub, 'kk ') || str_contains($sub, 'ddpk') || str_contains($sub, 'praktik') || str_contains($rm, 'lab');
             });
 
@@ -236,8 +238,8 @@ class DashboardController extends Controller
         ]);
 
         $config = SystemConfiguration::first();
-        if (!$config) {
-            $config = new SystemConfiguration();
+        if (! $config) {
+            $config = new SystemConfiguration;
         }
 
         // ✅ REVISI GURU: Blokir perubahan putaran jika jadwal sedang terkunci
@@ -263,24 +265,25 @@ class DashboardController extends Controller
             ]);
         }
 
-        return redirect()->back()->with('success', 'Siklus blok berhasil diubah ke ' . $request->active_cycle . ' dan dicatat ke riwayat.');
+        return redirect()->back()->with('success', 'Siklus blok berhasil diubah ke '.$request->active_cycle.' dan dicatat ke riwayat.');
     }
 
     public function toggleLock(Request $request)
     {
         $config = SystemConfiguration::first();
-        if (!$config) {
+        if (! $config) {
             $config = new SystemConfiguration([
                 'active_cycle' => 'Putaran 1',
                 'is_schedule_locked' => false,
             ]);
         }
 
-        $config->is_schedule_locked = !$config->is_schedule_locked;
+        $config->is_schedule_locked = ! $config->is_schedule_locked;
         $config->updated_by = Auth::id();
         $config->save();
 
         $statusText = $config->is_schedule_locked ? 'DIKUNCI (Lock Schedule Aktif)' : 'DIBUKA (Siap Diinput)';
-        return redirect()->back()->with('success', 'Status pengisian jadwal berhasil diubah: ' . $statusText);
+
+        return redirect()->back()->with('success', 'Status pengisian jadwal berhasil diubah: '.$statusText);
     }
 }

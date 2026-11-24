@@ -33,4 +33,3 @@ class CounselingLog extends Model
         return $this->belongsTo(User::class, 'counselor_id');
     }
 }
-

@@ -43,12 +43,13 @@ class WalasImportService
     {
         $spreadsheet = IOFactory::load($filePath);
         $sheet = $spreadsheet->getActiveSheet();
+
         return $sheet->toArray(null, true, true, false);
     }
 
     protected function parseDocx(string $filePath): array
     {
-        $zip = new \ZipArchive();
+        $zip = new \ZipArchive;
         if ($zip->open($filePath) !== true) {
             throw new \Exception('Gagal membuka file Word (.docx). File mungkin korup atau diproteksi.');
         }
@@ -56,11 +57,11 @@ class WalasImportService
         $xml = $zip->getFromName('word/document.xml');
         $zip->close();
 
-        if (!$xml) {
+        if (! $xml) {
             throw new \Exception('File .docx tidak berisi struktur dokumen XML yang valid.');
         }
 
-        $dom = new \DOMDocument();
+        $dom = new \DOMDocument;
         libxml_use_internal_errors(true);
         $dom->loadXML($xml);
         libxml_clear_errors();
@@ -76,18 +77,19 @@ class WalasImportService
                     foreach ($tcList as $tc) {
                         $row[] = trim($tc->textContent);
                     }
-                    if (!empty(array_filter($row, fn($c) => $c !== ''))) {
+                    if (! empty(array_filter($row, fn ($c) => $c !== ''))) {
                         $rows[] = $row;
                     }
                 }
             }
         }
+
         return $rows;
     }
 
     protected function parsePdf(string $filePath): array
     {
-        $parser = new PdfParser();
+        $parser = new PdfParser;
         $pdf = $parser->parseFile($filePath);
         $text = $pdf->getText();
 
@@ -95,7 +97,9 @@ class WalasImportService
         $lines = explode("\n", $text);
         foreach ($lines as $line) {
             $trimmed = trim($line);
-            if (empty($trimmed)) continue;
+            if (empty($trimmed)) {
+                continue;
+            }
 
             // Jika dipisah tab atau multi spasi atau koma
             if (str_contains($trimmed, "\t")) {
@@ -105,11 +109,12 @@ class WalasImportService
             } else {
                 $cols = preg_split('/\s{2,}/', $trimmed);
             }
-            $cleanCols = array_values(array_map('trim', (array)$cols));
+            $cleanCols = array_values(array_map('trim', (array) $cols));
             if (count($cleanCols) >= 2) {
                 $rows[] = $cleanCols;
             }
         }
+
         return $rows;
     }
 
@@ -120,7 +125,7 @@ class WalasImportService
     {
         $classes = Classes::all();
         $teachers = User::whereIn('role_id', [1, 2, 5, 6])->get();
-        $scheduleImportService = new ScheduleImportService();
+        $scheduleImportService = new ScheduleImportService;
         $refl = new \ReflectionClass($scheduleImportService);
         $stripAcademicTitles = $refl->getMethod('stripAcademicTitles');
         $stripAcademicTitles->setAccessible(true);
@@ -134,8 +139,10 @@ class WalasImportService
         $walasCol = null;
 
         foreach ($rawRows as $idx => $row) {
-            $cells = array_values(array_map(fn($v) => trim((string)$v), (array)$row));
-            if (empty(array_filter($cells, fn($c) => $c !== ''))) continue;
+            $cells = array_values(array_map(fn ($v) => trim((string) $v), (array) $row));
+            if (empty(array_filter($cells, fn ($c) => $c !== ''))) {
+                continue;
+            }
 
             $joined = strtolower(implode(' ', $cells));
 
@@ -143,12 +150,13 @@ class WalasImportService
             if (str_contains($joined, 'kelas') && (str_contains($joined, 'wali') || str_contains($joined, 'guru') || str_contains($joined, 'walas') || str_contains($joined, 'nama'))) {
                 foreach ($cells as $cIdx => $cell) {
                     $cLower = strtolower($cell);
-                    if (str_contains($cLower, 'kelas') && !str_contains($cLower, 'wali')) {
+                    if (str_contains($cLower, 'kelas') && ! str_contains($cLower, 'wali')) {
                         $classCol = $cIdx;
                     } elseif (str_contains($cLower, 'wali') || str_contains($cLower, 'walas')) {
                         $walasCol = $cIdx;
                     }
                 }
+
                 continue;
             }
 
@@ -170,20 +178,26 @@ class WalasImportService
                 }
             }
 
-            if (empty($rawClass) || empty($rawWalas)) continue;
-            if (str_contains(strtolower($rawClass), 'daftar') || str_contains(strtolower($rawClass), 'semester') || str_contains(strtolower($rawClass), 'keterangan')) continue;
+            if (empty($rawClass) || empty($rawWalas)) {
+                continue;
+            }
+            if (str_contains(strtolower($rawClass), 'daftar') || str_contains(strtolower($rawClass), 'semester') || str_contains(strtolower($rawClass), 'keterangan')) {
+                continue;
+            }
 
             $matchedClass = $this->matchClass($rawClass, $classes);
-            if (!$matchedClass) {
-                $errors[] = "Baris " . ($idx + 1) . ": Rombel kelas '{$rawClass}' tidak dikenali di sistem.";
+            if (! $matchedClass) {
+                $errors[] = 'Baris '.($idx + 1).": Rombel kelas '{$rawClass}' tidak dikenali di sistem.";
                 $skipped++;
+
                 continue;
             }
 
             $matchedTeacher = $this->findTeacherSmart($rawWalas, $teachers, $stripAcademicTitles, $scheduleImportService);
-            if (!$matchedTeacher) {
-                $errors[] = "Baris " . ($idx + 1) . ": Guru walas '{$rawWalas}' untuk kelas {$matchedClass->class_name} tidak ditemukan di sistem.";
+            if (! $matchedTeacher) {
+                $errors[] = 'Baris '.($idx + 1).": Guru walas '{$rawWalas}' untuk kelas {$matchedClass->class_name} tidak ditemukan di sistem.";
                 $skipped++;
+
                 continue;
             }
 
@@ -234,6 +248,7 @@ class WalasImportService
                 return $cls;
             }
         }
+
         return null;
     }
 
@@ -244,7 +259,9 @@ class WalasImportService
 
         // 1. Direct match
         foreach ($teachers as $t) {
-            if (strtolower($t->fullname) === $lower) return $t;
+            if (strtolower($t->fullname) === $lower) {
+                return $t;
+            }
         }
 
         // 2. Tanpa gelar
@@ -254,18 +271,20 @@ class WalasImportService
         foreach ($teachers as $t) {
             $tNoTitle = $stripMethod->invoke($service, strtolower($t->fullname));
             $tAlpha = preg_replace('/[^a-z]/', '', $tNoTitle);
-            if ($cleanAlpha === $tAlpha && !empty($cleanAlpha)) return $t;
+            if ($cleanAlpha === $tAlpha && ! empty($cleanAlpha)) {
+                return $t;
+            }
         }
 
         // 3. Kata kunci nama
-        $cleanWords = array_values(array_filter(explode(' ', preg_replace('/[^a-z]/', ' ', $cleanNoTitle)), fn($w) => strlen($w) >= 3));
+        $cleanWords = array_values(array_filter(explode(' ', preg_replace('/[^a-z]/', ' ', $cleanNoTitle)), fn ($w) => strlen($w) >= 3));
 
         $bestMatch = null;
         $maxMatches = 0;
 
         foreach ($teachers as $t) {
             $tNoTitle = $stripMethod->invoke($service, strtolower($t->fullname));
-            $tWords = array_values(array_filter(explode(' ', preg_replace('/[^a-z]/', ' ', $tNoTitle)), fn($w) => strlen($w) >= 3));
+            $tWords = array_values(array_filter(explode(' ', preg_replace('/[^a-z]/', ' ', $tNoTitle)), fn ($w) => strlen($w) >= 3));
 
             $matches = count(array_intersect($cleanWords, $tWords));
             if ($matches >= 2 && $matches > $maxMatches) {
@@ -277,7 +296,9 @@ class WalasImportService
             }
         }
 
-        if ($bestMatch) return $bestMatch;
+        if ($bestMatch) {
+            return $bestMatch;
+        }
 
         // 4. Toleransi salah ketik (Levenshtein)
         foreach ($teachers as $t) {
@@ -292,4 +313,3 @@ class WalasImportService
         return null;
     }
 }
-

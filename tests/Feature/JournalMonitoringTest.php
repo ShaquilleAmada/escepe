@@ -2,18 +2,15 @@
 
 namespace Tests\Feature;
 
-use Tests\TestCase;
 use App\Models\User;
-use App\Models\Classes;
-use App\Models\Schedule;
-use App\Models\Journal;
+use Tests\TestCase;
 
 class JournalMonitoringTest extends TestCase
 {
     public function test_waka_can_access_journal_monitoring_and_filter_by_class_components(): void
     {
         $waka = User::where('role_id', 1)->first();
-        if (!$waka) {
+        if (! $waka) {
             $this->markTestSkipped('No waka user found');
         }
 
@@ -32,4 +29,3 @@ class JournalMonitoringTest extends TestCase
         $response->assertSee('Semua Jurusan');
     }
 }
-

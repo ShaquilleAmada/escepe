@@ -6,7 +6,6 @@ use Illuminate\Auth\AuthenticationException;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Exceptions\Handler as ExceptionHandler;
 use Illuminate\Validation\ValidationException;
-use Throwable;
 
 class Handler extends ExceptionHandler
 {
@@ -46,7 +45,7 @@ class Handler extends ExceptionHandler
     {
         // Handler khusus untuk Web: redirect ke login saat sesi kedaluwarsa
         $this->renderable(function (\Illuminate\Session\TokenMismatchException $e, $request) {
-            if (!$request->is('api/*')) {
+            if (! $request->is('api/*')) {
                 return redirect()->route('login')
                     ->with('info', 'Sesi Anda telah berakhir. Silakan login kembali.');
             }
@@ -83,7 +82,7 @@ class Handler extends ExceptionHandler
                 return response()->json([
                     'success' => false,
                     'message' => 'Data yang dikirim tidak valid.',
-                    'errors'  => $e->errors(),
+                    'errors' => $e->errors(),
                 ], 422);
             }
         });

@@ -11,7 +11,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-        if (!Schema::hasTable('school_holidays')) {
+        if (! Schema::hasTable('school_holidays')) {
             Schema::create('school_holidays', function (Blueprint $table) {
                 $table->id();
                 $table->date('holiday_date')->unique();

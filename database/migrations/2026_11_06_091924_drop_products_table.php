@@ -19,7 +19,7 @@ return new class extends Migration
      */
     public function down(): void
     {
-        if (!Schema::hasTable('products')) {
+        if (! Schema::hasTable('products')) {
             Schema::create('products', function (Blueprint $table) {
                 $table->id();
                 $table->timestamps();

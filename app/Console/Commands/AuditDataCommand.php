@@ -2,16 +2,10 @@
 
 namespace App\Console\Commands;
 
+use App\Models\Role;
+use App\Models\Schedule;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
-use App\Models\User;
-use App\Models\Role;
-use App\Models\Classes;
-use App\Models\Room;
-use App\Models\Schedule;
-use App\Models\Journal;
-use App\Models\Attendance;
-use App\Models\LeaveRequest;
 
 class AuditDataCommand extends Command
 {
@@ -34,9 +28,9 @@ class AuditDataCommand extends Command
      */
     public function handle()
     {
-        $this->info("================================================================================");
-        $this->info("         AUDIT INTEGRITAS DATA SISTEM SCP - SMK NEGERI 1 BANTUL                 ");
-        $this->info("================================================================================");
+        $this->info('================================================================================');
+        $this->info('         AUDIT INTEGRITAS DATA SISTEM SCP - SMK NEGERI 1 BANTUL                 ');
+        $this->info('================================================================================');
 
         $results = [];
         $hasErrors = false;
@@ -57,7 +51,9 @@ class AuditDataCommand extends Command
             'Jumlah Masalah' => $orphanTotal,
             'Status' => $orphanTotal === 0 ? 'BERSIH' : 'TEMUAN',
         ];
-        if ($orphanTotal > 0) $hasErrors = true;
+        if ($orphanTotal > 0) {
+            $hasErrors = true;
+        }
 
         // 2. Duplikasi Unik (Duplicates)
         $dupUsers = DB::table('users')->select('username', DB::raw('count(*) as c'))->groupBy('username')->having('c', '>', 1)->count();
@@ -73,7 +69,9 @@ class AuditDataCommand extends Command
             'Jumlah Masalah' => $dupTotal,
             'Status' => $dupTotal === 0 ? 'BERSIH' : 'TEMUAN',
         ];
-        if ($dupTotal > 0) $hasErrors = true;
+        if ($dupTotal > 0) {
+            $hasErrors = true;
+        }
 
         // 3. Nilai Tidak Valid (Invalid Values)
         $invalidScheduleTime = DB::table('schedules')->whereColumn('end_time', '<=', 'start_time')->count();
@@ -88,7 +86,9 @@ class AuditDataCommand extends Command
             'Jumlah Masalah' => $invalidTotal,
             'Status' => $invalidTotal === 0 ? 'BERSIH' : 'TEMUAN',
         ];
-        if ($invalidTotal > 0) $hasErrors = true;
+        if ($invalidTotal > 0) {
+            $hasErrors = true;
+        }
 
         // 4. Konsistensi Izin & Akuntabilitas (Leave Consistency)
         $leavesDecidedNoVerifier = DB::table('leave_requests')->whereIn('status_approval', ['approved', 'rejected', 'disetujui', 'ditolak'])->whereNull('verified_by')->count();
@@ -103,7 +103,9 @@ class AuditDataCommand extends Command
             'Jumlah Masalah' => $leaveInconsistencyTotal,
             'Status' => $leaveInconsistencyTotal === 0 ? 'BERSIH' : 'TEMUAN',
         ];
-        if ($leaveInconsistencyTotal > 0) $hasErrors = true;
+        if ($leaveInconsistencyTotal > 0) {
+            $hasErrors = true;
+        }
 
         // 5. Relasi Akun Ortu & Siswa (Parent-Child Relations)
         $parentWithoutChild = DB::table('users')->where('role_id', Role::ORANG_TUA)->whereNull('parent_id')->count();
@@ -113,7 +115,9 @@ class AuditDataCommand extends Command
             'Jumlah Masalah' => $parentWithoutChild,
             'Status' => $parentWithoutChild === 0 ? 'BERSIH' : 'TEMUAN',
         ];
-        if ($parentWithoutChild > 0) $hasErrors = true;
+        if ($parentWithoutChild > 0) {
+            $hasErrors = true;
+        }
 
         // 6. Konflik Jadwal (Schedule Clashing)
         // Cek bentrok ruangan pada hari dan siklus yang sama: Start_A < End_B AND End_A > Start_B
@@ -142,10 +146,12 @@ class AuditDataCommand extends Command
 
         if ($hasErrors) {
             $this->error("\n[GAGAL] Ditemukan masalah integritas data yang melanggar spesifikasi.");
+
             return 1;
         }
 
         $this->info("\n[SUKSES] Seluruh pemeriksaan integritas data FASE B1 BERSIH (0 Masalah).");
+
         return 0;
     }
 }

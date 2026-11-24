@@ -37,7 +37,7 @@ class ForgotPasswordController extends Controller
 
         // Selalu kembalikan response sukses meski email tidak ada
         // (mencegah user enumerasi/guessing email yang terdaftar)
-        if (!$user) {
+        if (! $user) {
             return response()->json([
                 'success' => false,
                 'message' => 'Alamat email tidak terdaftar di database.',
@@ -51,20 +51,22 @@ class ForgotPasswordController extends Controller
             $mode = config('otp.mode', 'display');
             if ($mode === 'email') {
                 $this->otpService->dispatch($otp, $request->email, $request);
+
                 return response()->json([
                     'success' => true,
-                    'message' => 'Kode OTP telah dikirim ke email ' . $request->email . '. Kode berlaku selama 10 menit.',
+                    'message' => 'Kode OTP telah dikirim ke email '.$request->email.'. Kode berlaku selama 10 menit.',
                 ], 200);
             } else {
                 // Mode development: tampilkan OTP langsung di response
                 return response()->json([
-                    'success'  => true,
-                    'message'  => '[DEV MODE] Kode OTP berhasil dibuat.',
+                    'success' => true,
+                    'message' => '[DEV MODE] Kode OTP berhasil dibuat.',
                     'otp_code' => $otp, // HANYA untuk development, hapus di production
                 ], 200);
             }
         } catch (\Throwable $e) {
-            \Illuminate\Support\Facades\Log::error('API OTP error: ' . $e->getMessage());
+            \Illuminate\Support\Facades\Log::error('API OTP error: '.$e->getMessage());
+
             return response()->json([
                 'success' => false,
                 'message' => 'Gagal mengirim OTP. Pastikan pengaturan email server sudah dikonfigurasi.',
@@ -80,13 +82,13 @@ class ForgotPasswordController extends Controller
     {
         $request->validate([
             'email' => 'required|email',
-            'otp'   => 'required|string|digits:6',
+            'otp' => 'required|string|digits:6',
         ]);
 
         $maxAttempts = config('otp.max_attempts', 5);
-        $otpRecord   = PasswordOtp::where('email', $request->email)->latest()->first();
+        $otpRecord = PasswordOtp::where('email', $request->email)->latest()->first();
 
-        if (!$otpRecord) {
+        if (! $otpRecord) {
             return response()->json([
                 'success' => false,
                 'message' => 'Kode OTP tidak ditemukan atau sudah kedaluwarsa. Minta kode baru.',
@@ -95,6 +97,7 @@ class ForgotPasswordController extends Controller
 
         if ($otpRecord->isLocked($maxAttempts)) {
             $otpRecord->delete();
+
             return response()->json([
                 'success' => false,
                 'message' => 'Terlalu banyak percobaan verifikasi. Minta kode OTP baru.',
@@ -103,18 +106,20 @@ class ForgotPasswordController extends Controller
 
         if ($otpRecord->isExpired()) {
             $otpRecord->delete();
+
             return response()->json([
                 'success' => false,
                 'message' => 'Kode OTP sudah kedaluwarsa. Minta kode OTP baru.',
             ], 422);
         }
 
-        if (!Hash::check($request->otp, $otpRecord->otp_hash)) {
+        if (! Hash::check($request->otp, $otpRecord->otp_hash)) {
             $otpRecord->increment('attempts');
             $sisaPercobaan = $maxAttempts - $otpRecord->fresh()->attempts;
 
             if ($sisaPercobaan <= 0) {
                 $otpRecord->delete();
+
                 return response()->json([
                     'success' => false,
                     'message' => 'Terlalu banyak percobaan. Minta kode OTP baru.',
@@ -122,22 +127,22 @@ class ForgotPasswordController extends Controller
             }
 
             return response()->json([
-                'success'           => false,
-                'message'           => "Kode OTP salah. Sisa percobaan: {$sisaPercobaan}.",
-                'remaining_attempts'=> $sisaPercobaan,
+                'success' => false,
+                'message' => "Kode OTP salah. Sisa percobaan: {$sisaPercobaan}.",
+                'remaining_attempts' => $sisaPercobaan,
             ], 422);
         }
 
         // OTP benar → buat reset_token (simpan di otp_record sementara sebagai marker)
         // Gunakan kombinasi hash email + waktu sebagai token satu kali pakai
-        $resetToken = hash('sha256', $request->email . now()->timestamp . $request->otp);
+        $resetToken = hash('sha256', $request->email.now()->timestamp.$request->otp);
 
         // Simpan reset token ke record OTP (tandai bahwa OTP sudah diverifikasi)
         $otpRecord->update(['otp_hash' => Hash::make($resetToken)]);
 
         return response()->json([
-            'success'     => true,
-            'message'     => 'Kode OTP valid. Gunakan reset_token di bawah untuk mengubah password.',
+            'success' => true,
+            'message' => 'Kode OTP valid. Gunakan reset_token di bawah untuk mengubah password.',
             'reset_token' => $resetToken,
         ], 200);
     }
@@ -149,14 +154,14 @@ class ForgotPasswordController extends Controller
     public function resetPassword(Request $request)
     {
         $request->validate([
-            'email'                 => 'required|email',
-            'reset_token'           => 'required|string',
-            'password'              => ['required', Password::min(8), 'confirmed'],
+            'email' => 'required|email',
+            'reset_token' => 'required|string',
+            'password' => ['required', Password::min(8), 'confirmed'],
         ]);
 
         $otpRecord = PasswordOtp::where('email', $request->email)->latest()->first();
 
-        if (!$otpRecord) {
+        if (! $otpRecord) {
             return response()->json([
                 'success' => false,
                 'message' => 'Sesi reset password tidak valid atau sudah kedaluwarsa. Mulai ulang proses.',
@@ -164,7 +169,7 @@ class ForgotPasswordController extends Controller
         }
 
         // Verifikasi reset_token
-        if (!Hash::check($request->reset_token, $otpRecord->otp_hash)) {
+        if (! Hash::check($request->reset_token, $otpRecord->otp_hash)) {
             return response()->json([
                 'success' => false,
                 'message' => 'Reset token tidak valid. Mulai ulang proses lupa password.',
@@ -174,6 +179,7 @@ class ForgotPasswordController extends Controller
         // Cek token kedaluwarsa (berlaku 10 menit dari OTP awal dibuat)
         if ($otpRecord->isExpired()) {
             $otpRecord->delete();
+
             return response()->json([
                 'success' => false,
                 'message' => 'Sesi reset password telah kedaluwarsa. Minta kode OTP baru.',
@@ -182,8 +188,9 @@ class ForgotPasswordController extends Controller
 
         $user = User::where('email', $request->email)->first();
 
-        if (!$user) {
+        if (! $user) {
             $otpRecord->delete();
+
             return response()->json([
                 'success' => false,
                 'message' => 'Akun tidak ditemukan.',

@@ -3,16 +3,17 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
-use App\Models\User;
+use App\Models\Attendance;
 use App\Models\Classes;
+use App\Models\Journal;
+use App\Models\LeaveRequest;
+use App\Models\Role;
 use App\Models\Room;
 use App\Models\Schedule;
-use App\Models\Journal;
-use App\Models\Attendance;
-use App\Models\LeaveRequest;
 use App\Models\SystemConfiguration;
+use App\Models\User;
 use Carbon\Carbon;
+use Illuminate\Http\Request;
 
 /**
  * DashboardController (API)
@@ -29,7 +30,7 @@ class DashboardController extends Controller
 
         // Konfigurasi Sistem
         $config = SystemConfiguration::first();
-        if (!$config) {
+        if (! $config) {
             $config = SystemConfiguration::create([
                 'active_cycle' => 'Putaran 1',
                 'is_schedule_locked' => false,
@@ -42,7 +43,7 @@ class DashboardController extends Controller
         // Mapping hari dalam bahasa Indonesia
         $dayMap = [
             1 => 'Senin', 2 => 'Selasa', 3 => 'Rabu',
-            4 => 'Kamis', 5 => 'Jumat', 6 => 'Sabtu', 7 => 'Minggu'
+            4 => 'Kamis', 5 => 'Jumat', 6 => 'Sabtu', 7 => 'Minggu',
         ];
         $now = Carbon::now('Asia/Jakarta');
         $todayIndo = $dayMap[(int) $now->format('N')] ?? 'Senin';
@@ -51,11 +52,11 @@ class DashboardController extends Controller
         $timeThreshold = $now->copy()->subMinutes(30)->format('H:i:s');
 
         $response = [
-            'success'      => true,
-            'role'         => $user->role->role_name ?? 'User',
-            'role_id'      => $user->role_id,
-            'today_day'    => $todayIndo,
-            'today_date'   => $todayDate,
+            'success' => true,
+            'role' => $user->role->role_name ?? 'User',
+            'role_id' => $user->role_id,
+            'today_day' => $todayIndo,
+            'today_date' => $todayDate,
             'current_time' => substr($currentTime, 0, 5),
             'active_cycle' => $activeCycle,
             'is_schedule_locked' => (bool) $config->is_schedule_locked,
@@ -67,8 +68,8 @@ class DashboardController extends Controller
         if ($user->role_id == 1) {
             $totalTeachers = User::whereIn('role_id', [Role::GURU, Role::BK, Role::WALI_KELAS])->count();
             $totalStudents = User::where('role_id', Role::SISWA)->count();
-            $totalClasses  = Classes::count();
-            $totalRooms    = Room::count();
+            $totalClasses = Classes::count();
+            $totalRooms = Room::count();
 
             $todaySchedules = Schedule::with(['teacher:id,fullname', 'schoolClass:id,class_name', 'room:id,room_name'])
                 ->where('day_of_week', $todayIndo)
@@ -103,12 +104,12 @@ class DashboardController extends Controller
                     if ($sch->end_time <= $timeThreshold) {
                         $endTimeCarbon = Carbon::createFromTimeString($sch->end_time, 'Asia/Jakarta');
                         $overdueList[] = [
-                            'schedule_id'  => $sch->id,
+                            'schedule_id' => $sch->id,
                             'teacher_name' => $sch->teacher->fullname ?? 'Guru',
-                            'subject'      => $sch->subject,
-                            'class_name'   => $sch->schoolClass->class_name ?? '-',
-                            'room_name'    => $sch->room->room_name ?? '-',
-                            'time'         => substr($sch->start_time, 0, 5) . ' - ' . substr($sch->end_time, 0, 5),
+                            'subject' => $sch->subject,
+                            'class_name' => $sch->schoolClass->class_name ?? '-',
+                            'room_name' => $sch->room->room_name ?? '-',
+                            'time' => substr($sch->start_time, 0, 5).' - '.substr($sch->end_time, 0, 5),
                             'late_minutes' => (int) $endTimeCarbon->diffInMinutes($now),
                         ];
                     }
@@ -116,18 +117,18 @@ class DashboardController extends Controller
             }
 
             $response['summary'] = [
-                'total_users'          => User::count(),
-                'total_teachers'       => $totalTeachers,
-                'total_students'       => $totalStudents,
-                'total_classes'        => $totalClasses,
-                'total_rooms'          => $totalRooms,
-                'schedules_today_count'=> $todaySchedules->count(),
-                'journals_filled_count'=> $filledCount,
+                'total_users' => User::count(),
+                'total_teachers' => $totalTeachers,
+                'total_students' => $totalStudents,
+                'total_classes' => $totalClasses,
+                'total_rooms' => $totalRooms,
+                'schedules_today_count' => $todaySchedules->count(),
+                'journals_filled_count' => $filledCount,
                 'journals_unfilled_count' => $todaySchedules->count() - $filledCount,
-                'overdue_count'        => count($overdueList),
+                'overdue_count' => count($overdueList),
             ];
             $response['overdue_journals'] = $overdueList;
-            $response['today_schedules']  = $todaySchedules;
+            $response['today_schedules'] = $todaySchedules;
 
             return response()->json($response, 200);
         }
@@ -153,7 +154,7 @@ class DashboardController extends Controller
                     ->whereDate('date', $todayDate)
                     ->first();
 
-                $hasJournal = !is_null($journal);
+                $hasJournal = ! is_null($journal);
                 $statusText = 'Belum Diisi';
 
                 if ($hasJournal) {
@@ -171,29 +172,29 @@ class DashboardController extends Controller
                     if ($sch->end_time <= $timeThreshold) {
                         $endTimeCarbon = Carbon::createFromTimeString($sch->end_time, 'Asia/Jakarta');
                         $overdueList[] = [
-                            'schedule_id'  => $sch->id,
-                            'subject'      => $sch->subject,
-                            'class_name'   => $sch->schoolClass->class_name ?? '-',
-                            'room_name'    => $sch->room->room_name ?? '-',
-                            'time'         => substr($sch->start_time, 0, 5) . ' - ' . substr($sch->end_time, 0, 5),
+                            'schedule_id' => $sch->id,
+                            'subject' => $sch->subject,
+                            'class_name' => $sch->schoolClass->class_name ?? '-',
+                            'room_name' => $sch->room->room_name ?? '-',
+                            'time' => substr($sch->start_time, 0, 5).' - '.substr($sch->end_time, 0, 5),
                             'late_minutes' => (int) $endTimeCarbon->diffInMinutes($now),
                         ];
                     }
                 }
 
                 return [
-                    'id'                => $sch->id,
-                    'subject'           => $sch->subject,
-                    'day_of_week'       => $sch->day_of_week,
-                    'start_time'        => substr($sch->start_time, 0, 5),
-                    'end_time'          => substr($sch->end_time, 0, 5),
-                    'time_formatted'    => substr($sch->start_time, 0, 5) . ' - ' . substr($sch->end_time, 0, 5),
-                    'cycle_type'        => $sch->cycle_type,
-                    'class'             => $sch->schoolClass,
-                    'room'              => $sch->room,
+                    'id' => $sch->id,
+                    'subject' => $sch->subject,
+                    'day_of_week' => $sch->day_of_week,
+                    'start_time' => substr($sch->start_time, 0, 5),
+                    'end_time' => substr($sch->end_time, 0, 5),
+                    'time_formatted' => substr($sch->start_time, 0, 5).' - '.substr($sch->end_time, 0, 5),
+                    'cycle_type' => $sch->cycle_type,
+                    'class' => $sch->schoolClass,
+                    'room' => $sch->room,
                     'has_journal_today' => $hasJournal,
-                    'journal_id'        => $hasJournal ? $journal->id : null,
-                    'status_text'       => $statusText,
+                    'journal_id' => $hasJournal ? $journal->id : null,
+                    'status_text' => $statusText,
                 ];
             });
 
@@ -201,10 +202,10 @@ class DashboardController extends Controller
                 'schedules_today_count' => $todaySchedules->count(),
                 'journals_filled_count' => $filledCount,
                 'journals_unfilled_count' => $todaySchedules->count() - $filledCount,
-                'overdue_count'         => count($overdueList),
+                'overdue_count' => count($overdueList),
             ];
             $response['overdue_journals'] = $overdueList;
-            $response['today_schedules']  = $todaySchedulesFormatted;
+            $response['today_schedules'] = $todaySchedulesFormatted;
 
             return response()->json($response, 200);
         }
@@ -231,14 +232,14 @@ class DashboardController extends Controller
                             ->first();
 
                         return [
-                            'id'             => $sch->id,
-                            'subject'        => $sch->subject,
-                            'start_time'     => substr($sch->start_time, 0, 5),
-                            'end_time'       => substr($sch->end_time, 0, 5),
-                            'time_formatted' => substr($sch->start_time, 0, 5) . ' - ' . substr($sch->end_time, 0, 5),
-                            'teacher'        => $sch->teacher,
-                            'room'           => $sch->room,
-                            'has_journal'    => !is_null($journal),
+                            'id' => $sch->id,
+                            'subject' => $sch->subject,
+                            'start_time' => substr($sch->start_time, 0, 5),
+                            'end_time' => substr($sch->end_time, 0, 5),
+                            'time_formatted' => substr($sch->start_time, 0, 5).' - '.substr($sch->end_time, 0, 5),
+                            'teacher' => $sch->teacher,
+                            'room' => $sch->room,
+                            'has_journal' => ! is_null($journal),
                         ];
                     });
             }
@@ -258,14 +259,14 @@ class DashboardController extends Controller
             $response['class_name'] = $user->schoolClass->class_name ?? '-';
             $response['attendance_summary'] = [
                 'total_recorded' => $attendances->count(),
-                'hadir'          => $attendances->where('status', 'hadir')->count(),
-                'izin'           => $attendances->where('status', 'izin')->count(),
-                'sakit'          => $attendances->where('status', 'sakit')->count(),
-                'alpa'           => $attendances->where('status', 'alpa')->count(),
-                'today_status'   => $todayAttendance ? $todayAttendance->status : 'Belum Ada Sesi',
+                'hadir' => $attendances->where('status', 'hadir')->count(),
+                'izin' => $attendances->where('status', 'izin')->count(),
+                'sakit' => $attendances->where('status', 'sakit')->count(),
+                'alpa' => $attendances->where('status', 'alpa')->count(),
+                'today_status' => $todayAttendance ? $todayAttendance->status : 'Belum Ada Sesi',
             ];
             $response['latest_leave_request'] = $latestLeave;
-            $response['today_schedules']      = $todaySchedules;
+            $response['today_schedules'] = $todaySchedules;
 
             return response()->json($response, 200);
         }
@@ -276,9 +277,10 @@ class DashboardController extends Controller
         if ($user->role_id == 4) {
             $child = $user->children()->with('schoolClass')->first();
 
-            if (!$child) {
+            if (! $child) {
                 $response['child'] = null;
                 $response['message'] = 'Belum ada data siswa/anak yang terhubung ke akun ini.';
+
                 return response()->json($response, 200);
             }
 
@@ -305,21 +307,21 @@ class DashboardController extends Controller
                 ->first();
 
             $response['child'] = [
-                'id'         => $child->id,
-                'fullname'   => $child->fullname,
-                'username'   => $child->username,
+                'id' => $child->id,
+                'fullname' => $child->fullname,
+                'username' => $child->username,
                 'class_name' => $child->schoolClass->class_name ?? '-',
             ];
             $response['attendance_summary'] = [
                 'total_recorded' => $attendances->count(),
-                'hadir'          => $attendances->where('status', 'hadir')->count(),
-                'izin'           => $attendances->where('status', 'izin')->count(),
-                'sakit'          => $attendances->where('status', 'sakit')->count(),
-                'alpa'           => $attendances->where('status', 'alpa')->count(),
-                'today_status'   => $todayAttendance ? $todayAttendance->status : 'Belum Ada Sesi',
+                'hadir' => $attendances->where('status', 'hadir')->count(),
+                'izin' => $attendances->where('status', 'izin')->count(),
+                'sakit' => $attendances->where('status', 'sakit')->count(),
+                'alpa' => $attendances->where('status', 'alpa')->count(),
+                'today_status' => $todayAttendance ? $todayAttendance->status : 'Belum Ada Sesi',
             ];
             $response['latest_leave_request'] = $latestLeave;
-            $response['today_schedules']      = $todaySchedules;
+            $response['today_schedules'] = $todaySchedules;
 
             return response()->json($response, 200);
         }
@@ -348,10 +350,10 @@ class DashboardController extends Controller
             }
 
             $response['summary'] = [
-                'pending_leaves_count'     => $pendingLeavesCount,
+                'pending_leaves_count' => $pendingLeavesCount,
                 'students_need_counseling' => $problemCount,
                 'total_students_monitored' => $students->count(),
-                'class_name'               => $user->schoolClass->class_name ?? null,
+                'class_name' => $user->schoolClass->class_name ?? null,
             ];
 
             // Jika Walas (Role 6) atau BK (Role 5) memiliki jadwal mengajar/masuk kelas hari ini, sertakan today_schedules
@@ -370,7 +372,7 @@ class DashboardController extends Controller
                         ->whereDate('date', $todayDate)
                         ->first();
 
-                    $hasJournal = !is_null($journal);
+                    $hasJournal = ! is_null($journal);
                     $statusText = 'Belum Diisi';
 
                     if ($hasJournal) {
@@ -384,18 +386,18 @@ class DashboardController extends Controller
                     }
 
                     return [
-                        'id'                => $sch->id,
-                        'subject'           => $sch->subject,
-                        'day_of_week'       => $sch->day_of_week,
-                        'start_time'        => substr($sch->start_time, 0, 5),
-                        'end_time'          => substr($sch->end_time, 0, 5),
-                        'time_formatted'    => substr($sch->start_time, 0, 5) . ' - ' . substr($sch->end_time, 0, 5),
-                        'cycle_type'        => $sch->cycle_type,
-                        'class'             => $sch->schoolClass,
-                        'room'              => $sch->room,
+                        'id' => $sch->id,
+                        'subject' => $sch->subject,
+                        'day_of_week' => $sch->day_of_week,
+                        'start_time' => substr($sch->start_time, 0, 5),
+                        'end_time' => substr($sch->end_time, 0, 5),
+                        'time_formatted' => substr($sch->start_time, 0, 5).' - '.substr($sch->end_time, 0, 5),
+                        'cycle_type' => $sch->cycle_type,
+                        'class' => $sch->schoolClass,
+                        'room' => $sch->room,
                         'has_journal_today' => $hasJournal,
-                        'journal_id'        => $hasJournal ? $journal->id : null,
-                        'status_text'       => $statusText,
+                        'journal_id' => $hasJournal ? $journal->id : null,
+                        'status_text' => $statusText,
                     ];
                 });
 

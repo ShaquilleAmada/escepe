@@ -2,9 +2,9 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Seeder;
-use App\Models\User;
 use App\Models\Classes;
+use App\Models\User;
+use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 
 class StudentSeeder extends Seeder
@@ -85,14 +85,14 @@ class StudentSeeder extends Seeder
             );
 
             // 2. Akun Orang Tua Terpisah (login dengan 'P' + NIS)
-            $parentUsername = 'P' . $s['nip_nisn'];
+            $parentUsername = 'P'.$s['nip_nisn'];
             $parent = User::updateOrCreate(
                 ['username' => $parentUsername],
                 [
                     'role_id' => 4, // OrangTua
                     'class_id' => $class->id,
                     'parent_id' => $student->id,
-                    'fullname' => 'Orang Tua ' . $s['fullname'],
+                    'fullname' => 'Orang Tua '.$s['fullname'],
                     'password' => Hash::make('password123'),
                 ]
             );

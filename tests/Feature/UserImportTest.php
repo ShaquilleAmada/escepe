@@ -2,16 +2,17 @@
 
 namespace Tests\Feature;
 
-use Tests\TestCase;
-use App\Models\User;
 use App\Models\Classes;
 use App\Models\Role;
+use App\Models\User;
 use App\Services\UserImportService;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
+use Tests\TestCase;
 
 class UserImportTest extends TestCase
 {
     use DatabaseTransactions;
+
     /**
      * Test deteksi otomatis role Wali Kelas dari Keterangan Tambahan & Kelas binaan.
      */
@@ -19,11 +20,11 @@ class UserImportTest extends TestCase
     {
         $classes = Classes::all();
         $classRpl2 = Classes::where('class_name', 'XII RPL 2')->first();
-        if (!$classRpl2) {
+        if (! $classRpl2) {
             $classRpl2 = Classes::create(['class_name' => 'XII RPL 2']);
         }
 
-        $importService = new UserImportService();
+        $importService = new UserImportService;
 
         // Data mentah simulasi spreadsheet
         $rows = [
@@ -75,11 +76,11 @@ class UserImportTest extends TestCase
     {
         $filePath = 'C:/Users/LENOVO/.gemini/antigravity/brain/9427c070-1751-43c6-aeb0-4cc516e75dd4/.user_uploaded/media_1793839147112_fcdd0cdd.xlsx';
 
-        if (!file_exists($filePath)) {
+        if (! file_exists($filePath)) {
             $this->markTestSkipped('Sample attendance roster excel not found in artifact path.');
         }
 
-        $importService = new UserImportService();
+        $importService = new UserImportService;
         $file = new \Illuminate\Http\UploadedFile(
             $filePath,
             'DAFTAR_HADIR_SISWA.xlsx',
@@ -115,7 +116,7 @@ class UserImportTest extends TestCase
         $this->assertEquals(3, $sampleStudent->role_id);
         $this->assertNotNull($sampleStudent->class_id);
 
-        $sampleParent = User::where('username', 'P' . $sampleNis)->first();
+        $sampleParent = User::where('username', 'P'.$sampleNis)->first();
         $this->assertNotNull($sampleParent);
         $this->assertEquals(4, $sampleParent->role_id);
         $this->assertEquals($sampleStudent->id, $sampleParent->parent_id);
@@ -130,7 +131,7 @@ class UserImportTest extends TestCase
      */
     public function test_username_format_two_words_and_three_words_on_collision(): void
     {
-        $importService = new UserImportService();
+        $importService = new UserImportService;
 
         $rows = [
             ['No', 'Nama Lengkap', 'Email', 'Username', 'NIP / NIS', 'Role / Peran', 'Kelas', 'Keterangan Tambahan'],
@@ -186,4 +187,3 @@ class UserImportTest extends TestCase
         User::whereIn('id', array_filter([$citra1?->id, $ortuCitra1?->id, $citra2?->id, $citra3?->id, $guru1?->id, $guru2?->id]))->delete();
     }
 }
-

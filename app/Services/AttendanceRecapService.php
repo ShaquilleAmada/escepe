@@ -2,13 +2,10 @@
 
 namespace App\Services;
 
-use App\Models\Classes;
 use App\Models\Journal;
-use App\Models\Attendance;
 use App\Models\LeaveRequest;
 use App\Models\Schedule;
 use App\Models\SystemConfiguration;
-use App\Models\User;
 use Carbon\Carbon;
 
 class AttendanceRecapService
@@ -56,11 +53,11 @@ class AttendanceRecapService
 
         if ($hasPendingLeave) {
             return [
-                'status'       => 'belum_final',
-                'label'        => 'Belum Final',
-                'color'        => 'warning',
-                'reason'       => 'Terdapat pengajuan izin yang masih berstatus pending.',
-                'is_final'     => false,
+                'status' => 'belum_final',
+                'label' => 'Belum Final',
+                'color' => 'warning',
+                'reason' => 'Terdapat pengajuan izin yang masih berstatus pending.',
+                'is_final' => false,
             ];
         }
 
@@ -68,11 +65,11 @@ class AttendanceRecapService
         $carbonDate = Carbon::parse($date);
         if ($carbonDate->isWeekend()) {
             return [
-                'status'       => 'final',
-                'label'        => 'Final / Bersih',
-                'color'        => 'success',
-                'reason'       => 'Hari non-efektif KBM (akhir pekan).',
-                'is_final'     => true,
+                'status' => 'final',
+                'label' => 'Final / Bersih',
+                'color' => 'success',
+                'reason' => 'Hari non-efektif KBM (akhir pekan).',
+                'is_final' => true,
             ];
         }
 
@@ -86,12 +83,12 @@ class AttendanceRecapService
             default => null,
         };
 
-        if (!$dayName) {
+        if (! $dayName) {
             return [
-                'status'   => 'final',
-                'label'    => 'Final / Bersih',
-                'color'    => 'success',
-                'reason'   => 'Tidak ada KBM terjadwal.',
+                'status' => 'final',
+                'label' => 'Final / Bersih',
+                'color' => 'success',
+                'reason' => 'Tidak ada KBM terjadwal.',
                 'is_final' => true,
             ];
         }
@@ -102,17 +99,17 @@ class AttendanceRecapService
             ->where('day_of_week', $dayName)
             ->where(function ($q) use ($activeCycle) {
                 $q->where('cycle_type', $activeCycle)
-                  ->orWhere('cycle_type', 'Semua Siklus');
+                    ->orWhere('cycle_type', 'Semua Siklus');
             })
             ->count();
 
         // Jika tidak ada jadwal KBM kelas ini di hari tersebut
         if ($scheduledCount === 0) {
             return [
-                'status'   => 'final',
-                'label'    => 'Final / Bersih',
-                'color'    => 'success',
-                'reason'   => 'Tidak ada jadwal KBM pada hari ini.',
+                'status' => 'final',
+                'label' => 'Final / Bersih',
+                'color' => 'success',
+                'reason' => 'Tidak ada jadwal KBM pada hari ini.',
                 'is_final' => true,
             ];
         }
@@ -121,30 +118,30 @@ class AttendanceRecapService
         $loggedJournalsCount = Journal::whereDate('date', $date)
             ->whereHas('schedule', function ($q) use ($classId, $dayName, $activeCycle) {
                 $q->where('class_id', $classId)
-                  ->where('day_of_week', $dayName)
-                  ->where(function ($sub) use ($activeCycle) {
-                      $sub->where('cycle_type', $activeCycle)
-                          ->orWhere('cycle_type', 'Semua Siklus');
-                  });
+                    ->where('day_of_week', $dayName)
+                    ->where(function ($sub) use ($activeCycle) {
+                        $sub->where('cycle_type', $activeCycle)
+                            ->orWhere('cycle_type', 'Semua Siklus');
+                    });
             })
             ->count();
 
         if ($loggedJournalsCount < $scheduledCount) {
             return [
-                'status'       => 'belum_final',
-                'label'        => 'Belum Final',
-                'color'        => 'warning',
-                'reason'       => "Presensi belum lengkap ({$loggedJournalsCount} dari {$scheduledCount} sesi KBM terisi).",
-                'is_final'     => false,
+                'status' => 'belum_final',
+                'label' => 'Belum Final',
+                'color' => 'warning',
+                'reason' => "Presensi belum lengkap ({$loggedJournalsCount} dari {$scheduledCount} sesi KBM terisi).",
+                'is_final' => false,
             ];
         }
 
         return [
-            'status'       => 'final',
-            'label'        => 'Final / Bersih',
-            'color'        => 'success',
-            'reason'       => "Semua permohonan izin diputuskan & {$loggedJournalsCount} sesi KBM lengkap terisi.",
-            'is_final'     => true,
+            'status' => 'final',
+            'label' => 'Final / Bersih',
+            'color' => 'success',
+            'reason' => "Semua permohonan izin diputuskan & {$loggedJournalsCount} sesi KBM lengkap terisi.",
+            'is_final' => true,
         ];
     }
 }

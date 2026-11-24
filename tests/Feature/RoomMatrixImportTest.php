@@ -2,14 +2,9 @@
 
 namespace Tests\Feature;
 
-use Tests\TestCase;
-use App\Models\Classes;
-use App\Models\Room;
-use App\Models\Schedule;
-use App\Models\User;
 use App\Services\RoomMatrixImportService;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
-use Illuminate\Http\UploadedFile;
+use Tests\TestCase;
 
 class RoomMatrixImportTest extends TestCase
 {
@@ -17,7 +12,7 @@ class RoomMatrixImportTest extends TestCase
 
     public function test_can_normalize_room_names(): void
     {
-        $service = new RoomMatrixImportService();
+        $service = new RoomMatrixImportService;
 
         $this->assertEquals('Lab 16', $service->normalizeRoomName('L.16'));
         $this->assertEquals('Lab 1', $service->normalizeRoomName('L.1'));
@@ -30,4 +25,3 @@ class RoomMatrixImportTest extends TestCase
         $this->assertNull($service->normalizeRoomName('-'));
     }
 }
-

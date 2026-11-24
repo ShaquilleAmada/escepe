@@ -2,14 +2,14 @@
 
 namespace Tests\Feature;
 
-use Tests\TestCase;
-use App\Models\User;
 use App\Models\Classes;
 use App\Models\LeaveRequest;
-use App\Models\TeacherAbsence;
 use App\Models\Role;
+use App\Models\TeacherAbsence;
+use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
+use Tests\TestCase;
 
 class LeaveBypassLogicTest extends TestCase
 {
@@ -26,38 +26,38 @@ class LeaveBypassLogicTest extends TestCase
             ['grade_level' => 'XI', 'major' => 'TKJ', 'section' => '1']
         );
 
-        $nisWalasA = 'walas_' . rand(10000, 99999);
+        $nisWalasA = 'walas_'.rand(10000, 99999);
         $walasA = User::create([
             'username' => $nisWalasA,
             'fullname' => 'Wali Kelas A',
             'password' => bcrypt('password123'),
-            'role_id'  => Role::WALI_KELAS,
+            'role_id' => Role::WALI_KELAS,
             'class_id' => $classA->id,
         ]);
 
-        $nisB = (string)rand(80000, 89999);
+        $nisB = (string) rand(80000, 89999);
         $studentB = User::create([
             'username' => $nisB,
             'nip_nisn' => $nisB,
             'fullname' => 'Siswa B',
             'password' => bcrypt('password123'),
-            'role_id'  => Role::SISWA,
+            'role_id' => Role::SISWA,
             'class_id' => $classB->id,
         ]);
 
         $leaveB = LeaveRequest::create([
-            'student_id'      => $studentB->id,
-            'applicant_id'    => $studentB->id,
-            'leave_type'      => 'izin',
-            'start_date'      => Carbon::today()->toDateString(),
-            'end_date'        => Carbon::today()->toDateString(),
-            'reason'          => 'Ada urusan keluarga',
+            'student_id' => $studentB->id,
+            'applicant_id' => $studentB->id,
+            'leave_type' => 'izin',
+            'start_date' => Carbon::today('Asia/Jakarta')->toDateString(),
+            'end_date' => Carbon::today('Asia/Jakarta')->toDateString(),
+            'reason' => 'Ada urusan keluarga',
             'status_approval' => 'pending',
         ]);
 
         // Walas A mencoba verifikasi siswa di kelas B -> HARUS DITOLAK (403)
         $token = $walasA->createToken('test')->plainTextToken;
-        $response = $this->withHeader('Authorization', 'Bearer ' . $token)
+        $response = $this->withHeader('Authorization', 'Bearer '.$token)
             ->patchJson("/api/leave-requests/{$leaveB->id}/verify", [
                 'status_approval' => 'approved',
             ]);
@@ -67,57 +67,57 @@ class LeaveBypassLogicTest extends TestCase
 
     public function test_bk_can_bypass_when_walas_is_marked_absent_by_waka()
     {
-        $class = Classes::firstOrCreate(
-            ['class_name' => 'X DKV 1'],
-            ['grade_level' => 'X', 'major' => 'DKV', 'section' => '1']
+        $className = 'TEST_DKV_'.rand(10000, 99999);
+        $class = Classes::create(
+            ['class_name' => $className, 'grade_level' => 'X', 'major' => 'DKV', 'section' => '1']
         );
 
-        $nisWalas = 'walas_' . rand(10000, 99999);
+        $nisWalas = 'walas_'.rand(10000, 99999);
         $walas = User::create([
             'username' => $nisWalas,
             'fullname' => 'Wali Kelas DKV',
             'password' => bcrypt('password123'),
-            'role_id'  => Role::WALI_KELAS,
+            'role_id' => Role::WALI_KELAS,
             'class_id' => $class->id,
         ]);
 
-        $nisBk = 'bk_' . rand(10000, 99999);
+        $nisBk = 'bk_'.rand(10000, 99999);
         $bk = User::create([
             'username' => $nisBk,
             'fullname' => 'Guru BK Test',
             'password' => bcrypt('password123'),
-            'role_id'  => Role::BK,
+            'role_id' => Role::BK,
         ]);
 
-        $nisStudent = (string)rand(80000, 89999);
+        $nisStudent = (string) rand(80000, 89999);
         $student = User::create([
             'username' => $nisStudent,
             'nip_nisn' => $nisStudent,
             'fullname' => 'Siswa DKV',
             'password' => bcrypt('password123'),
-            'role_id'  => Role::SISWA,
+            'role_id' => Role::SISWA,
             'class_id' => $class->id,
         ]);
 
         $leave = LeaveRequest::create([
-            'student_id'      => $student->id,
-            'applicant_id'    => $student->id,
-            'leave_type'      => 'sakit',
-            'start_date'      => Carbon::today()->toDateString(),
-            'end_date'        => Carbon::today()->toDateString(),
-            'reason'          => 'Demam tinggi',
+            'student_id' => $student->id,
+            'applicant_id' => $student->id,
+            'leave_type' => 'sakit',
+            'start_date' => Carbon::today('Asia/Jakarta')->toDateString(),
+            'end_date' => Carbon::today('Asia/Jakarta')->toDateString(),
+            'reason' => 'Demam tinggi',
             'status_approval' => 'pending',
         ]);
 
         // Tandai walas absen hari ini
         TeacherAbsence::create([
             'teacher_id' => $walas->id,
-            'date'       => Carbon::today()->toDateString(),
-            'reason'     => 'Izin sakit',
+            'date' => Carbon::today('Asia/Jakarta')->toDateString(),
+            'reason' => 'Izin sakit',
         ]);
 
         $bkToken = $bk->createToken('test')->plainTextToken;
-        $response = $this->withHeader('Authorization', 'Bearer ' . $bkToken)
+        $response = $this->withHeader('Authorization', 'Bearer '.$bkToken)
             ->patchJson("/api/leave-requests/{$leave->id}/verify", [
                 'status_approval' => 'approved',
             ]);
@@ -125,31 +125,113 @@ class LeaveBypassLogicTest extends TestCase
         $response->assertStatus(200);
         $leave->refresh();
         $this->assertEquals('approved', $leave->status_approval);
-        $this->assertTrue((bool)$leave->is_bypass);
+        $this->assertTrue((bool) $leave->is_bypass);
         $this->assertEquals($bk->id, $leave->verified_by);
+    }
+
+    public function test_bk_cannot_verify_leave_of_unassigned_class_and_can_verify_assigned_class()
+    {
+        $nisBk1 = 'bk1_'.rand(10000, 99999);
+        $bk1 = User::create([
+            'username' => $nisBk1,
+            'fullname' => 'Guru BK 1',
+            'password' => bcrypt('password123'),
+            'role_id' => Role::BK,
+        ]);
+
+        $nisBk2 = 'bk2_'.rand(10000, 99999);
+        $bk2 = User::create([
+            'username' => $nisBk2,
+            'fullname' => 'Guru BK 2',
+            'password' => bcrypt('password123'),
+            'role_id' => Role::BK,
+        ]);
+
+        // Kelas B diampu oleh BK 2
+        $classB = Classes::create([
+            'class_name' => 'TEST_BK_B_'.rand(10000, 99999),
+            'grade_level' => 'XI',
+            'major' => 'RPL',
+            'section' => '1',
+            'bk_id' => $bk2->id,
+        ]);
+
+        $walasB = User::create([
+            'username' => 'walas_b_'.rand(10000, 99999),
+            'fullname' => 'Walas B',
+            'password' => bcrypt('password123'),
+            'role_id' => Role::WALI_KELAS,
+            'class_id' => $classB->id,
+        ]);
+
+        $studentB = User::create([
+            'username' => 'std_b_'.rand(80000, 89999),
+            'fullname' => 'Siswa B',
+            'password' => bcrypt('password123'),
+            'role_id' => Role::SISWA,
+            'class_id' => $classB->id,
+        ]);
+
+        $leaveB = LeaveRequest::create([
+            'student_id' => $studentB->id,
+            'applicant_id' => $studentB->id,
+            'leave_type' => 'izin',
+            'start_date' => Carbon::today('Asia/Jakarta')->toDateString(),
+            'end_date' => Carbon::today('Asia/Jakarta')->toDateString(),
+            'reason' => 'Keperluan keluarga',
+            'status_approval' => 'pending',
+        ]);
+
+        // Walas berhalangan hadir
+        TeacherAbsence::create([
+            'teacher_id' => $walasB->id,
+            'date' => Carbon::today('Asia/Jakarta')->toDateString(),
+            'reason' => 'Dinas luar',
+        ]);
+
+        // BK 1 mencoba verifikasi siswa kelas B (Bukan rombel binaannya) -> HARUS 403
+        $token1 = $bk1->createToken('test')->plainTextToken;
+        $res1 = $this->withHeader('Authorization', 'Bearer '.$token1)
+            ->patchJson("/api/leave-requests/{$leaveB->id}/verify", [
+                'status_approval' => 'approved',
+            ]);
+        $res1->assertStatus(403);
+        $res1->assertJsonFragment(['success' => false]);
+
+        // BK 2 (penanggung jawab kelas B) mencoba verifikasi -> HARUS 200 BERHASIL
+        $this->app['auth']->forgetGuards();
+        $token2 = $bk2->createToken('test')->plainTextToken;
+        $res2 = $this->withHeader('Authorization', 'Bearer '.$token2)
+            ->patchJson("/api/leave-requests/{$leaveB->id}/verify", [
+                'status_approval' => 'approved',
+            ]);
+        $res2->assertStatus(200);
+        $leaveB->refresh();
+        $this->assertEquals('approved', $leaveB->status_approval);
+        $this->assertEquals($bk2->id, $leaveB->verified_by);
     }
 
     public function test_schedules_cud_is_forbidden_for_students()
     {
-        $nisStudent = (string)rand(80000, 89999);
+        $nisStudent = (string) rand(80000, 89999);
         $student = User::create([
             'username' => $nisStudent,
             'fullname' => 'Siswa Test',
             'password' => bcrypt('password123'),
-            'role_id'  => Role::SISWA,
+            'role_id' => Role::SISWA,
         ]);
 
         $token = $student->createToken('test')->plainTextToken;
-        $response = $this->withHeader('Authorization', 'Bearer ' . $token)
+        $response = $this->withHeader('Authorization', 'Bearer '.$token)
             ->postJson('/api/schedules', [
-                'teacher_id'  => 1,
-                'class_id'    => 1,
-                'room_id'     => 1,
-                'subject'     => 'Hacked Subject',
+                'teacher_id' => 1,
+                'class_id' => 1,
+                'room_id' => 1,
+                'subject' => 'Hacked Subject',
                 'day_of_week' => 'Senin',
-                'start_time'  => '07:00',
-                'end_time'    => '08:30',
-                'cycle_type'  => 'Putaran 1',
+                'start_time' => '07:00',
+                'end_time' => '08:30',
+                'cycle_type' => 'Putaran 1',
             ]);
 
         // Mahasiswa/Siswa HARUS ditolak (403 Forbidden)

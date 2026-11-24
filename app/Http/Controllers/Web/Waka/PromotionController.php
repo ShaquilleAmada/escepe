@@ -3,9 +3,9 @@
 namespace App\Http\Controllers\Web\Waka;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
 use App\Models\Classes;
 use App\Models\User;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class PromotionController extends Controller
@@ -19,36 +19,36 @@ class PromotionController extends Controller
         $classes = Classes::withCount(['students' => function ($q) {
             $q->where('role_id', 3)->where('student_status', 'aktif');
         }])
-        ->orderByRaw("FIELD(grade_level, 'X', 'XI', 'XII')")
-        ->orderBy('major')
-        ->orderBy('section')
-        ->get();
+            ->orderByRaw("FIELD(grade_level, 'X', 'XI', 'XII')")
+            ->orderBy('major')
+            ->orderBy('section')
+            ->get();
 
         $gradeLevels = Classes::GRADE_LEVELS;
-        $majors      = Classes::MAJORS;
+        $majors = Classes::MAJORS;
         sort($majors);
-        $sections    = Classes::SECTIONS;
+        $sections = Classes::SECTIONS;
 
         // 2. Filter kelas asal jika dipilih
-        $sourceClassId      = $request->get('source_class_id');
+        $sourceClassId = $request->get('source_class_id');
         $selectedGradeLevel = $request->get('grade_level');
-        $selectedMajor      = $request->get('major');
-        $selectedSection    = $request->get('section');
+        $selectedMajor = $request->get('major');
+        $selectedSection = $request->get('section');
 
         // Jika user memilih via dropdown Tingkat, Jurusan, Rombel
-        if (!$sourceClassId && ($selectedGradeLevel || $selectedMajor || $selectedSection)) {
-            if (!$selectedGradeLevel || !$selectedMajor || !$selectedSection) {
+        if (! $sourceClassId && ($selectedGradeLevel || $selectedMajor || $selectedSection)) {
+            if (! $selectedGradeLevel || ! $selectedMajor || ! $selectedSection) {
                 session()->now('warning', 'Silakan pilih Tingkat Kelas, Jurusan, dan Rombel secara lengkap untuk membuka data kelas.');
             } else {
                 $matchedClass = Classes::where(function ($q) use ($selectedGradeLevel) {
                     $q->where('grade_level', $selectedGradeLevel)
-                      ->orWhere('class_name', 'LIKE', $selectedGradeLevel . ' %');
+                        ->orWhere('class_name', 'LIKE', $selectedGradeLevel.' %');
                 })->where(function ($q) use ($selectedMajor) {
                     $q->where('major', strtoupper($selectedMajor))
-                      ->orWhere('class_name', 'LIKE', '% ' . $selectedMajor . ' %');
+                        ->orWhere('class_name', 'LIKE', '% '.$selectedMajor.' %');
                 })->where(function ($q) use ($selectedSection) {
                     $q->where('section', $selectedSection)
-                      ->orWhere('class_name', 'LIKE', '% ' . $selectedSection);
+                        ->orWhere('class_name', 'LIKE', '% '.$selectedSection);
                 })->first();
 
                 if ($matchedClass) {
@@ -69,8 +69,8 @@ class PromotionController extends Controller
 
             if ($selectedClass) {
                 $selectedGradeLevel = $selectedClass->grade_level;
-                $selectedMajor      = $selectedClass->major;
-                $selectedSection    = $selectedClass->section;
+                $selectedMajor = $selectedClass->major;
+                $selectedSection = $selectedClass->section;
 
                 $students = User::where('role_id', 3)
                     ->where('class_id', $sourceClassId)
@@ -175,8 +175,9 @@ class PromotionController extends Controller
                 ->with('success', "Sukses! Sebanyak {$validStudents->count()} siswa berhasil dinaikkan dari {$sourceClass->class_name} ke {$destClass->class_name}. Kelas asal kini telah berkurang/kosong.");
         } catch (\Exception $e) {
             DB::rollBack();
+
             return redirect()->back()
-                ->with('error', 'Terjadi kesalahan sistem saat memproses kenaikan kelas: ' . $e->getMessage());
+                ->with('error', 'Terjadi kesalahan sistem saat memproses kenaikan kelas: '.$e->getMessage());
         }
     }
 
@@ -228,7 +229,7 @@ class PromotionController extends Controller
                 if ($student->parent_id) {
                     $parent = User::find($student->parent_id);
                 }
-                if (!$parent) {
+                if (! $parent) {
                     $parent = User::where('role_id', 4)->where('parent_id', $student->id)->first();
                 }
 
@@ -247,8 +248,9 @@ class PromotionController extends Controller
                 ->with('success', "Sukses! Sebanyak {$validStudents->count()} siswa dari {$sourceClass->class_name} berhasil diluluskan. Data siswa dan akun orang tua dinonaktifkan sebagai alumni, dan kelas {$sourceClass->class_name} sekarang telah KOSONG sehingga siap diisi oleh kenaikan kelas XI.");
         } catch (\Exception $e) {
             DB::rollBack();
+
             return redirect()->back()
-                ->with('error', 'Terjadi kesalahan saat meluluskan siswa: ' . $e->getMessage());
+                ->with('error', 'Terjadi kesalahan saat meluluskan siswa: '.$e->getMessage());
         }
     }
 
@@ -277,7 +279,7 @@ class PromotionController extends Controller
             if ($student->parent_id) {
                 $parent = User::find($student->parent_id);
             }
-            if (!$parent) {
+            if (! $parent) {
                 $parent = User::where('role_id', 4)->where('parent_id', $student->id)->first();
             }
 
@@ -293,7 +295,8 @@ class PromotionController extends Controller
             return redirect()->back()->with('success', "Siswa {$student->fullname} dan akun orang tua berhasil dikembalikan ke status aktif di kelas {$targetClass->class_name}.");
         } catch (\Exception $e) {
             DB::rollBack();
-            return redirect()->back()->with('error', 'Gagal memulihkan status siswa: ' . $e->getMessage());
+
+            return redirect()->back()->with('error', 'Gagal memulihkan status siswa: '.$e->getMessage());
         }
     }
 }

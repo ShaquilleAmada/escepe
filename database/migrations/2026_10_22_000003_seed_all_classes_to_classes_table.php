@@ -22,7 +22,7 @@ return new class extends Migration
 
                     $existing = DB::table('classes')->where('class_name', $className)->first();
 
-                    if (!$existing) {
+                    if (! $existing) {
                         DB::table('classes')->insert([
                             'class_name' => $className,
                             'grade_level' => $level,

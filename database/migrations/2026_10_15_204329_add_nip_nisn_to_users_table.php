@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::table('users', function (Blueprint $table) {
             $table->string('nip_nisn', 30)->nullable()->unique()->after('fullname')
-                  ->comment('NIP untuk Guru/Pegawai (Waka, Guru, Walas, BK), NISN untuk Siswa');
+                ->comment('NIP untuk Guru/Pegawai (Waka, Guru, Walas, BK), NISN untuk Siswa');
         });
     }
 

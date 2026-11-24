@@ -3,10 +3,10 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
-use App\Models\User;
 use App\Models\Classes;
 use App\Models\Room;
+use App\Models\User;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 
 class AdminController extends Controller
@@ -59,6 +59,7 @@ class AdminController extends Controller
     public function showUser($id)
     {
         $user = User::with(['role', 'schoolClass', 'parent', 'children'])->findOrFail($id);
+
         return response()->json(['success' => true, 'data' => $user], 200);
     }
 
@@ -67,20 +68,21 @@ class AdminController extends Controller
         $user = User::findOrFail($id);
         $validated = $request->validate([
             'role_id' => 'required|exists:roles,id',
-            'username' => 'required|string|max:50|unique:users,username,' . $id,
+            'username' => 'required|string|max:50|unique:users,username,'.$id,
             'fullname' => 'required|string|max:100',
             'password' => 'nullable|string|min:6',
             'class_id' => 'nullable|exists:classes,id',
             'parent_id' => 'nullable|exists:users,id',
         ]);
 
-        if (!empty($validated['password'])) {
+        if (! empty($validated['password'])) {
             $validated['password'] = Hash::make($validated['password']);
         } else {
             unset($validated['password']);
         }
 
         $user->update($validated);
+
         return response()->json(['success' => true, 'message' => 'User berhasil diperbarui', 'data' => $user], 200);
     }
 
@@ -88,6 +90,7 @@ class AdminController extends Controller
     {
         $user = User::findOrFail($id);
         $user->delete();
+
         return response()->json(['success' => true, 'message' => 'User berhasil dihapus'], 200);
     }
 
@@ -95,6 +98,7 @@ class AdminController extends Controller
     public function listClasses()
     {
         $classes = Classes::withCount('students')->orderBy('class_name')->get();
+
         return response()->json(['success' => true, 'data' => $classes], 200);
     }
 
@@ -104,6 +108,7 @@ class AdminController extends Controller
             'class_name' => 'required|string|max:50|unique:classes,class_name',
         ]);
         $class = Classes::create($validated);
+
         return response()->json(['success' => true, 'message' => 'Kelas berhasil ditambahkan', 'data' => $class], 201);
     }
 
@@ -111,9 +116,10 @@ class AdminController extends Controller
     {
         $class = Classes::findOrFail($id);
         $validated = $request->validate([
-            'class_name' => 'required|string|max:50|unique:classes,class_name,' . $id,
+            'class_name' => 'required|string|max:50|unique:classes,class_name,'.$id,
         ]);
         $class->update($validated);
+
         return response()->json(['success' => true, 'message' => 'Kelas berhasil diperbarui', 'data' => $class], 200);
     }
 
@@ -121,6 +127,7 @@ class AdminController extends Controller
     {
         $class = Classes::findOrFail($id);
         $class->delete();
+
         return response()->json(['success' => true, 'message' => 'Kelas berhasil dihapus'], 200);
     }
 
@@ -128,6 +135,7 @@ class AdminController extends Controller
     public function listRooms()
     {
         $rooms = Room::orderBy('room_name')->get();
+
         return response()->json(['success' => true, 'data' => $rooms], 200);
     }
 
@@ -137,6 +145,7 @@ class AdminController extends Controller
             'room_name' => 'required|string|max:50|unique:rooms,room_name',
         ]);
         $room = Room::create($validated);
+
         return response()->json(['success' => true, 'message' => 'Ruangan berhasil ditambahkan', 'data' => $room], 201);
     }
 
@@ -144,9 +153,10 @@ class AdminController extends Controller
     {
         $room = Room::findOrFail($id);
         $validated = $request->validate([
-            'room_name' => 'required|string|max:50|unique:rooms,room_name,' . $id,
+            'room_name' => 'required|string|max:50|unique:rooms,room_name,'.$id,
         ]);
         $room->update($validated);
+
         return response()->json(['success' => true, 'message' => 'Ruangan berhasil diperbarui', 'data' => $room], 200);
     }
 
@@ -154,6 +164,7 @@ class AdminController extends Controller
     {
         $room = Room::findOrFail($id);
         $room->delete();
+
         return response()->json(['success' => true, 'message' => 'Ruangan berhasil dihapus'], 200);
     }
 }

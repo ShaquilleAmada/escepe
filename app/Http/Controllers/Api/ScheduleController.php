@@ -3,9 +3,9 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
 use App\Models\Schedule;
 use App\Models\SystemConfiguration;
+use Illuminate\Http\Request;
 
 class ScheduleController extends Controller
 {
@@ -32,12 +32,12 @@ class ScheduleController extends Controller
         if ($request->filled('cycle')) {
             $query->where(function ($q) use ($request) {
                 $q->where('cycle_type', $request->cycle)
-                  ->orWhere('cycle_type', 'semua');
+                    ->orWhere('cycle_type', 'semua');
             });
         } else {
             $query->where(function ($q) use ($activeCycle) {
                 $q->where('cycle_type', $activeCycle)
-                  ->orWhere('cycle_type', 'semua');
+                    ->orWhere('cycle_type', 'semua');
             });
         }
 
@@ -51,7 +51,7 @@ class ScheduleController extends Controller
             'success' => true,
             'active_cycle' => $activeCycle,
             'total' => $schedules->count(),
-            'data' => $schedules
+            'data' => $schedules,
         ], 200);
     }
 
@@ -78,7 +78,7 @@ class ScheduleController extends Controller
             ->where('day_of_week', $todayIndo)
             ->where(function ($q) use ($activeCycle) {
                 $q->where('cycle_type', $activeCycle)
-                  ->orWhere('cycle_type', 'semua');
+                    ->orWhere('cycle_type', 'semua');
             });
 
         $user = $request->user();
@@ -99,7 +99,7 @@ class ScheduleController extends Controller
                 ->whereDate('date', $todayDate)
                 ->first();
 
-            $hasJournal = !is_null($journal);
+            $hasJournal = ! is_null($journal);
             $statusText = 'Belum Diisi';
             if ($hasJournal) {
                 $statusText = 'Selesai';
@@ -110,18 +110,18 @@ class ScheduleController extends Controller
             }
 
             $sch->has_journal_today = $hasJournal;
-            $sch->journal_id        = $hasJournal ? $journal->id : null;
-            $sch->status_text       = $statusText;
+            $sch->journal_id = $hasJournal ? $journal->id : null;
+            $sch->status_text = $statusText;
 
             return $sch;
         });
 
         return response()->json([
-            'success'      => true,
-            'today_day'    => $todayIndo,
-            'today_date'   => $todayDate,
+            'success' => true,
+            'today_day' => $todayIndo,
+            'today_date' => $todayDate,
             'active_cycle' => $activeCycle,
-            'data'         => $schedules
+            'data' => $schedules,
         ], 200);
     }
 
@@ -150,7 +150,7 @@ class ScheduleController extends Controller
             ->where('day_of_week', $todayIndo)
             ->where(function ($q) use ($activeCycle) {
                 $q->where('cycle_type', $activeCycle)
-                  ->orWhere('cycle_type', 'semua');
+                    ->orWhere('cycle_type', 'semua');
             });
 
         $user = $request->user();
@@ -166,10 +166,10 @@ class ScheduleController extends Controller
                 ->whereDate('date', $todayDate)
                 ->exists();
 
-            if (!$hasJournal) {
+            if (! $hasJournal) {
                 $endTimeStr = $sched->end_time;
-                $endTimeTimestamp = strtotime($todayDate . ' ' . $endTimeStr);
-                $nowTimestamp = strtotime($todayDate . ' ' . $currentTime);
+                $endTimeTimestamp = strtotime($todayDate.' '.$endTimeStr);
+                $nowTimestamp = strtotime($todayDate.' '.$currentTime);
 
                 // Lebih dari 30 menit (1800 detik) setelah jam selesai
                 if ($nowTimestamp > ($endTimeTimestamp + 1800)) {
@@ -180,9 +180,9 @@ class ScheduleController extends Controller
                         'class_name' => $sched->schoolClass->class_name ?? '-',
                         'room_name' => $sched->room->room_name ?? '-',
                         'teacher_name' => $sched->teacher->fullname ?? '-',
-                        'time' => $sched->start_time . ' - ' . $sched->end_time,
+                        'time' => $sched->start_time.' - '.$sched->end_time,
                         'minutes_overdue' => $minutesLate,
-                        'message' => "Jadwal '{$sched->subject}' di kelas {$sched->schoolClass->class_name} telah selesai sejak {$minutesLate} menit yang lalu namun belum mengisi jurnal."
+                        'message' => "Jadwal '{$sched->subject}' di kelas {$sched->schoolClass->class_name} telah selesai sejak {$minutesLate} menit yang lalu namun belum mengisi jurnal.",
                     ];
                 }
             }
@@ -192,16 +192,17 @@ class ScheduleController extends Controller
             'success' => true,
             'total_overdue' => count($overdue),
             'has_overdue' => count($overdue) > 0,
-            'data' => $overdue
+            'data' => $overdue,
         ], 200);
     }
 
     public function show($id)
     {
         $schedule = Schedule::with(['teacher:id,fullname,username', 'schoolClass:id,class_name', 'room:id,room_name'])->findOrFail($id);
+
         return response()->json([
             'success' => true,
-            'data' => $schedule
+            'data' => $schedule,
         ], 200);
     }
 
@@ -211,7 +212,7 @@ class ScheduleController extends Controller
         if ($config && $config->is_schedule_locked) {
             return response()->json([
                 'success' => false,
-                'message' => 'Pengisian jadwal pelajaran sedang dikunci karena sudah fix/final.'
+                'message' => 'Pengisian jadwal pelajaran sedang dikunci karena sudah fix/final.',
             ], 403);
         }
 
@@ -239,7 +240,7 @@ class ScheduleController extends Controller
         if ($conflict) {
             return response()->json([
                 'success' => false,
-                'message' => $conflict
+                'message' => $conflict,
             ], 422);
         }
 
@@ -248,7 +249,7 @@ class ScheduleController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Jadwal pelajaran berhasil ditambahkan',
-            'data' => $schedule
+            'data' => $schedule,
         ], 201);
     }
 
@@ -258,7 +259,7 @@ class ScheduleController extends Controller
         if ($config && $config->is_schedule_locked) {
             return response()->json([
                 'success' => false,
-                'message' => 'Perubahan jadwal pelajaran sedang dikunci karena sudah fix/final.'
+                'message' => 'Perubahan jadwal pelajaran sedang dikunci karena sudah fix/final.',
             ], 403);
         }
 
@@ -289,7 +290,7 @@ class ScheduleController extends Controller
         if ($conflict) {
             return response()->json([
                 'success' => false,
-                'message' => $conflict
+                'message' => $conflict,
             ], 422);
         }
 
@@ -298,7 +299,7 @@ class ScheduleController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Jadwal pelajaran berhasil diperbarui',
-            'data' => $schedule
+            'data' => $schedule,
         ], 200);
     }
 
@@ -308,7 +309,7 @@ class ScheduleController extends Controller
         if ($config && $config->is_schedule_locked) {
             return response()->json([
                 'success' => false,
-                'message' => 'Penghapusan jadwal pelajaran sedang dikunci karena sudah fix/final.'
+                'message' => 'Penghapusan jadwal pelajaran sedang dikunci karena sudah fix/final.',
             ], 403);
         }
 
@@ -317,7 +318,7 @@ class ScheduleController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Jadwal pelajaran berhasil dihapus'
+            'message' => 'Jadwal pelajaran berhasil dihapus',
         ], 200);
     }
 
@@ -373,7 +374,7 @@ class ScheduleController extends Controller
                     $cycleQ->whereIn('cycle_type', ['semua', 'Putaran 1', 'Putaran 2']);
                 } else {
                     $cycleQ->where('cycle_type', $cycleType)
-                           ->orWhere('cycle_type', 'semua');
+                        ->orWhere('cycle_type', 'semua');
                 }
             })
             ->where('start_time', '<', $endTime)

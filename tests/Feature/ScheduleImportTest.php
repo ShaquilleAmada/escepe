@@ -2,12 +2,7 @@
 
 namespace Tests\Feature;
 
-use App\Models\Classes;
-use App\Models\Room;
-use App\Models\Schedule;
-use App\Models\User;
 use App\Services\ScheduleImportService;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Tests\TestCase;
 
@@ -16,12 +11,12 @@ class ScheduleImportTest extends TestCase
     public function test_can_detect_and_parse_fet_schedule_pdf()
     {
         $pdfPath = 'C:/Users/LENOVO/.gemini/antigravity/brain/9427c070-1751-43c6-aeb0-4cc516e75dd4/.user_uploaded/media_1793838943665_9f64e46d.pdf';
-        
-        if (!file_exists($pdfPath)) {
+
+        if (! file_exists($pdfPath)) {
             $this->markTestSkipped('Sample FET PDF file not found in artifact path.');
         }
 
-        $service = new ScheduleImportService();
+        $service = new ScheduleImportService;
         $file = new UploadedFile(
             $pdfPath,
             'JADWAL_GURU_PUT_2_SEM_GANJIL_26_27_REVISI.pdf',
@@ -53,11 +48,11 @@ class ScheduleImportTest extends TestCase
     {
         $pdfPath = 'C:/Users/LENOVO/.gemini/antigravity/brain/9427c070-1751-43c6-aeb0-4cc516e75dd4/.user_uploaded/media_1793891060897_de676277.pdf';
 
-        if (!file_exists($pdfPath)) {
+        if (! file_exists($pdfPath)) {
             $this->markTestSkipped('Sample FET Class PDF file not found in artifact path.');
         }
 
-        $service = new ScheduleImportService();
+        $service = new ScheduleImportService;
         $file = new UploadedFile(
             $pdfPath,
             'JADWAL_KELAS_PUT_1_(1).pdf',
@@ -85,4 +80,3 @@ class ScheduleImportTest extends TestCase
         $this->assertEquals('Putaran 1', $sampleRow[6]);
     }
 }
-

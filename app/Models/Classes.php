@@ -13,7 +13,9 @@ class Classes extends Model
     protected $table = 'classes';
 
     public const GRADE_LEVELS = ['X', 'XI', 'XII'];
+
     public const MAJORS = ['RPL', 'TKJ', 'DKV', 'BR', 'BD', 'LPS', 'AKL', 'MP'];
+
     public const SECTIONS = ['1', '2', '3', '4'];
 
     protected $fillable = [
@@ -21,6 +23,7 @@ class Classes extends Model
         'grade_level',
         'major',
         'section',
+        'bk_id',
     ];
 
     public function users(): HasMany
@@ -39,7 +42,7 @@ class Classes extends Model
             ->where('role_id', 3)
             ->where(function ($q) {
                 $q->where('student_status', 'aktif')
-                  ->orWhereNull('student_status');
+                    ->orWhereNull('student_status');
             });
     }
 
@@ -52,5 +55,10 @@ class Classes extends Model
     public function walas()
     {
         return $this->homeroomTeacher();
+    }
+
+    public function bkTeacher()
+    {
+        return $this->belongsTo(User::class, 'bk_id');
     }
 }

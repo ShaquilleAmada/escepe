@@ -88,22 +88,43 @@ class AttendanceRecapController extends Controller
                 return $studentClassId == $class->id || $journalClassId == $class->id;
             });
 
-            $hadir = $classAtts->where('status', 'hadir')->count();
-            $izin = $classAtts->where('status', 'izin')->count();
-            $sakit = $classAtts->where('status', 'sakit')->count();
-            $alpa = $classAtts->where('status', 'alpa')->count();
+            // Hitung kehadiran unik per siswa (tidak terduplikasi meski ada beberapa sesi jurnal)
+            $studentAttsMap = $classAtts->groupBy('student_id');
+            $hadir = 0;
+            $izin = 0;
+            $sakit = 0;
+            $alpa = 0;
 
-            // Hitung sakit & izin dari surat izin yang disetujui pada tanggal ini
+            foreach ($studentAttsMap as $stId => $records) {
+                // Jika ada izin/sakit/alpa pada sesi hari itu, dahulukan status non-hadir
+                $nonHadir = $records->firstWhere('status', '!=', 'hadir');
+                if ($nonHadir) {
+                    $st = $nonHadir->status;
+                    if ($st === 'sakit') $sakit++;
+                    elseif ($st === 'izin') $izin++;
+                    elseif ($st === 'alpa') $alpa++;
+                    else $hadir++;
+                } else {
+                    $hadir++;
+                }
+            }
+
+            // Hitung sakit & izin dari surat izin yang disetujui pada tanggal ini (sinkron meski guru belum input jurnal)
             $approvedLeavesToday = LeaveRequest::where('status_approval', 'approved')
                 ->whereDate('start_date', '<=', $date)
                 ->whereDate('end_date', '>=', $date)
                 ->whereHas('student', fn ($q) => $q->where('class_id', $class->id))
                 ->get();
 
-            $sakitLeaves = $approvedLeavesToday->where('leave_type', 'sakit')->count();
-            $izinLeaves = $approvedLeavesToday->where('leave_type', '!=', 'sakit')->count();
-            $sakit = max($sakit, $sakitLeaves);
-            $izin = max($izin, $izinLeaves);
+            foreach ($approvedLeavesToday as $leave) {
+                if (!isset($studentAttsMap[$leave->student_id])) {
+                    if ($leave->leave_type === 'sakit') {
+                        $sakit++;
+                    } else {
+                        $izin++;
+                    }
+                }
+            }
 
             // Status Final vs Belum Final otomatis
             $recapStatus = AttendanceRecapService::getClassDayStatus($class->id, $date);
@@ -195,9 +216,16 @@ class AttendanceRecapController extends Controller
                     $statusLabel = 'Belum Ada Data';
                 }
             } else {
-                $first = $studentAtts->first();
-                $status = $first->status;
-                $statusLabel = ucfirst($first->status == 'alpa' ? 'Alpha' : $first->status);
+                if (isset($approvedLeavesMap[$s->id])) {
+                    $leave = $approvedLeavesMap[$s->id];
+                    $status = $leave->leave_type === 'sakit' ? 'sakit' : 'izin';
+                    $statusLabel = ucfirst($status).' (Disetujui)';
+                } else {
+                    $nonHadir = $studentAtts->firstWhere('status', '!=', 'hadir');
+                    $chosen = $nonHadir ?: $studentAtts->first();
+                    $status = $chosen->status;
+                    $statusLabel = ucfirst($chosen->status == 'alpa' ? 'Alpha' : $chosen->status);
+                }
             }
 
             return [

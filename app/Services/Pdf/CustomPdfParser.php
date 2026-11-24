@@ -46,7 +46,7 @@ class CustomPdfParser extends BaseParser
                     $content = isset($part[3][0]) ? $part[3][0] : $part[1];
 
                     if ($header->get('Type')->equals('ObjStm')) {
-                        list($objectNumbers, $byteOffsets, $firstObjectOffset) = $this->customGetObjectStreamIndex($header, $content);
+                        [$objectNumbers, $byteOffsets, $firstObjectOffset] = $this->customGetObjectStreamIndex($header, $content);
                         $content = substr($content, $firstObjectOffset);
                         $table = [];
 
@@ -80,7 +80,7 @@ class CustomPdfParser extends BaseParser
                     break;
 
                 default:
-                    if ('null' != $part) {
+                    if ($part != 'null') {
                         $element = $this->parseHeaderElement($part[0], $part[1], $document);
 
                         if ($element) {
@@ -91,7 +91,7 @@ class CustomPdfParser extends BaseParser
             }
         }
 
-        if (!isset($this->objects[$id])) {
+        if (! isset($this->objects[$id])) {
             $this->objects[$id] = PDFObject::factory($document, $header, $content, $this->getConfig());
         }
     }
@@ -105,9 +105,9 @@ class CustomPdfParser extends BaseParser
         $first = $this->customGetObjectStreamInteger($header, 'First', $length - 1);
 
         if (
-            null === $first
-            || false === strpbrk(substr($content, $first, $length - $first), '0123456789')
-            || (0 < $first && 2 === strspn($content, '0123456789', $first - 1, 2))
+            $first === null
+            || strpbrk(substr($content, $first, $length - $first), '0123456789') === false
+            || ($first > 0 && strspn($content, '0123456789', $first - 1, 2) === 2)
         ) {
             return [$index[1], $index[2], $length];
         }
@@ -117,7 +117,7 @@ class CustomPdfParser extends BaseParser
 
         if (
             $first !== \strlen(implode('', $indexInFrontOfFirst[0]))
-            || (null !== $numberOfObjects && \count($indexInFrontOfFirst[0]) !== $numberOfObjects)
+            || ($numberOfObjects !== null && \count($indexInFrontOfFirst[0]) !== $numberOfObjects)
         ) {
             return [$index[1], $index[2], $length];
         }
@@ -129,12 +129,12 @@ class CustomPdfParser extends BaseParser
     {
         $element = $header->get($name);
 
-        if (!$element instanceof ElementNumeric) {
+        if (! $element instanceof ElementNumeric) {
             return null;
         }
 
         $value = $element->getContent();
 
-        return 0 <= $value && $value <= $max ? (int) $value : null;
+        return $value >= 0 && $value <= $max ? (int) $value : null;
     }
 }

@@ -24,7 +24,7 @@ class Journal extends Model
 
     public function getPhotoUrlAttribute(): ?string
     {
-        return $this->photo_path ? asset('storage/' . $this->photo_path) : null;
+        return $this->photo_path ? asset('storage/'.$this->photo_path) : null;
     }
 
     public function schedule(): BelongsTo

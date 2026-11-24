@@ -26,7 +26,7 @@ class OtpService
      * Buat OTP baru untuk email tertentu.
      * Jika sudah ada OTP lama untuk email yang sama, hapus dulu (satu OTP aktif per email).
      *
-     * @return string  OTP plaintext (untuk dikirim ke pengguna, TIDAK disimpan di DB)
+     * @return string OTP plaintext (untuk dikirim ke pengguna, TIDAK disimpan di DB)
      */
     public function generate(string $email): string
     {
@@ -39,9 +39,9 @@ class OtpService
         $otp = str_pad((string) random_int(0, 999999), self::OTP_LENGTH, '0', STR_PAD_LEFT);
 
         PasswordOtp::create([
-            'email'      => $normalizedEmail,
-            'otp_hash'   => Hash::make($otp),  // simpan hash, bukan plaintext
-            'attempts'   => 0,
+            'email' => $normalizedEmail,
+            'otp_hash' => Hash::make($otp),  // simpan hash, bukan plaintext
+            'attempts' => 0,
             'expires_at' => now()->addMinutes((int) config('otp.ttl_minutes', self::TTL_MINUTES)),
         ]);
 
@@ -51,7 +51,7 @@ class OtpService
     /**
      * Kirim OTP ke pengguna sesuai mode yang dikonfigurasi.
      *
-     * @param  string  $otp    OTP plaintext
+     * @param  string  $otp  OTP plaintext
      * @param  string  $email  Email tujuan
      * @param  \Illuminate\Http\Request  $request  Untuk menyimpan ke session flash
      */
@@ -61,8 +61,8 @@ class OtpService
 
         match ($mode) {
             'display' => $this->dispatchDisplay($otp, $request),
-            'email'   => $this->dispatchEmail($otp, $email),
-            default   => $this->dispatchDisplay($otp, $request),
+            'email' => $this->dispatchEmail($otp, $email),
+            default => $this->dispatchDisplay($otp, $request),
         };
     }
 

@@ -25,6 +25,16 @@
                 <form action="{{ route('waka.schedules.store') }}" method="POST">
                     @csrf
 
+                    @if(session('error') || $errors->has('conflict'))
+                    <div class="alert alert-danger border-0 d-flex align-items-center gap-2 mb-4 p-3 rounded-3 shadow-sm" role="alert">
+                        <i class="bi bi-exclamation-octagon-fill fs-4 text-danger flex-shrink-0"></i>
+                        <div>
+                            <div class="fw-bold">Peringatan Bentrok Jadwal!</div>
+                            <div class="small">{{ session('error') ?? $errors->first('conflict') }}</div>
+                        </div>
+                    </div>
+                    @endif
+
                     <!-- Mata Pelajaran -->
                     <div class="mb-3">
                         <label for="subject" class="form-label small fw-semibold text-dark">

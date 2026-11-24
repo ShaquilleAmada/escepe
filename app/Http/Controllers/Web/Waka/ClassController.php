@@ -3,11 +3,10 @@
 namespace App\Http\Controllers\Web\Waka;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
 use App\Models\Classes;
 use App\Models\User;
 use App\Services\WalasImportService;
-use Illuminate\Support\Facades\Hash;
+use Illuminate\Http\Request;
 
 class ClassController extends Controller
 {
@@ -25,21 +24,21 @@ class ClassController extends Controller
         if ($request->filled('grade_level')) {
             $query->where(function ($q) use ($request) {
                 $q->where('grade_level', $request->grade_level)
-                  ->orWhere('class_name', 'LIKE', $request->grade_level . ' %');
+                    ->orWhere('class_name', 'LIKE', $request->grade_level.' %');
             });
         }
 
         if ($request->filled('major')) {
             $query->where(function ($q) use ($request) {
                 $q->where('major', strtoupper($request->major))
-                  ->orWhere('class_name', 'LIKE', '% ' . $request->major . ' %');
+                    ->orWhere('class_name', 'LIKE', '% '.$request->major.' %');
             });
         }
 
         if ($request->filled('section')) {
             $query->where(function ($q) use ($request) {
                 $q->where('section', $request->section)
-                  ->orWhere('class_name', 'LIKE', '% ' . $request->section);
+                    ->orWhere('class_name', 'LIKE', '% '.$request->section);
             });
         }
 
@@ -74,7 +73,7 @@ class ClassController extends Controller
             $request->merge(['class_name' => $className]);
         } else {
             $className = trim($request->class_name ?? '');
-            if ($className && (!$gradeLevel || !$major || !$section)) {
+            if ($className && (! $gradeLevel || ! $major || ! $section)) {
                 $parts = preg_split('/\s+/', $className);
                 $gradeLevel = $gradeLevel ?: ($parts[0] ?? null);
                 $major = $major ?: (isset($parts[1]) ? strtoupper($parts[1]) : null);
@@ -117,7 +116,7 @@ class ClassController extends Controller
             $request->merge(['class_name' => $className]);
         } else {
             $className = trim($request->class_name ?? $class->class_name);
-            if ($className && (!$gradeLevel || !$major || !$section)) {
+            if ($className && (! $gradeLevel || ! $major || ! $section)) {
                 $parts = preg_split('/\s+/', $className);
                 $gradeLevel = $gradeLevel ?: ($parts[0] ?? null);
                 $major = $major ?: (isset($parts[1]) ? strtoupper($parts[1]) : null);
@@ -129,7 +128,7 @@ class ClassController extends Controller
             'grade_level' => 'required|string|max:10',
             'major' => 'required|string|max:20',
             'section' => 'required|string|max:10',
-            'class_name' => 'required|string|max:50|unique:classes,class_name,' . $class->id,
+            'class_name' => 'required|string|max:50|unique:classes,class_name,'.$class->id,
         ], [
             'grade_level.required' => 'Masukkan tingkat kelas terlebih dahulu.',
             'major.required' => 'Masukkan jurusan terlebih dahulu.',
@@ -178,7 +177,7 @@ class ClassController extends Controller
     {
         $request->validate([
             'teacher_id' => 'required|exists:users,id',
-            'date'       => 'nullable|date',
+            'date' => 'nullable|date',
         ]);
 
         $date = $request->input('date', \Carbon\Carbon::today()->toDateString());
@@ -193,9 +192,9 @@ class ClassController extends Controller
         } else {
             \App\Models\TeacherAbsence::create([
                 'teacher_id' => $teacherId,
-                'date'       => $date,
-                'reason'     => $request->input('reason', 'Berhalangan hadir (ditandai Waka Kurikulum)'),
-                'marked_by'  => auth()->id(),
+                'date' => $date,
+                'reason' => $request->input('reason', 'Berhalangan hadir (ditandai Waka Kurikulum)'),
+                'marked_by' => auth()->id(),
             ]);
             $isAbsent = true;
             $msg = 'Status wali kelas berhasil diubah menjadi: BERHALANGAN HADIR (Bypass BK aktif seketika).';
@@ -292,7 +291,7 @@ class ClassController extends Controller
                 ->with('walas_import_errors', $result['errors']);
         } catch (\Throwable $e) {
             return redirect()->route('waka.classes.index')
-                ->with('error', 'Gagal memproses file: ' . $e->getMessage());
+                ->with('error', 'Gagal memproses file: '.$e->getMessage());
         }
     }
 }

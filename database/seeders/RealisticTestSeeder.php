@@ -2,10 +2,10 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Seeder;
 use App\Models\Role;
-use App\Models\User;
 use App\Models\SystemConfiguration;
+use App\Models\User;
+use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 
 class RealisticTestSeeder extends Seeder
@@ -14,11 +14,11 @@ class RealisticTestSeeder extends Seeder
     {
         // Pastikan Role ada
         $roles = [
-            Role::ADMIN      => 'Admin',
-            Role::GURU       => 'Guru',
-            Role::SISWA      => 'Siswa',
-            Role::ORANG_TUA  => 'OrangTua',
-            Role::BK         => 'BK',
+            Role::ADMIN => 'Admin',
+            Role::GURU => 'Guru',
+            Role::SISWA => 'Siswa',
+            Role::ORANG_TUA => 'OrangTua',
+            Role::BK => 'BK',
             Role::WALI_KELAS => 'WaliKelas',
         ];
 
@@ -30,9 +30,9 @@ class RealisticTestSeeder extends Seeder
         $waka = User::firstOrCreate(
             ['username' => 'waka_kurikulum'],
             [
-                'role_id'  => Role::ADMIN,
+                'role_id' => Role::ADMIN,
                 'fullname' => 'Waka Kurikulum SMK 1 Bantul',
-                'email'    => 'missinghumanss@gmail.com',
+                'email' => 'missinghumanss@gmail.com',
                 'password' => Hash::make('admin123'),
             ]
         );
@@ -41,11 +41,11 @@ class RealisticTestSeeder extends Seeder
         SystemConfiguration::firstOrCreate(
             ['id' => 1],
             [
-                'active_cycle'       => 'Putaran 1',
+                'active_cycle' => 'Putaran 1',
                 'is_schedule_locked' => false,
-                'academic_year'      => '2025/2026',
-                'semester'           => 'Ganjil',
-                'updated_by'         => $waka->id,
+                'academic_year' => '2025/2026',
+                'semester' => 'Ganjil',
+                'updated_by' => $waka->id,
             ]
         );
 
