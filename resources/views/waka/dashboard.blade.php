@@ -11,14 +11,57 @@
         </p>
     </div>
 
-    {{-- Filter Pintas: Konsep Tanpa Card & Tanpa Icon (Hanya Teks) --}}
-    <div class="d-flex align-items-center gap-2 flex-wrap mb-4" style="font-size: 0.88rem;">
+    {{-- Filter Pintas: Jadwal Guru Hari Ini (Konsep Tanpa Card & Tanpa Icon) --}}
+    <div class="d-flex align-items-center gap-3 flex-wrap mb-4" style="font-size: 0.88rem;">
         <span class="text-secondary fw-semibold">Filter Pintas:</span>
-        <a href="{{ route('waka.schedules.index', ['today' => 1]) }}" class="text-primary fw-semibold text-decoration-none">
+
+        <a href="{{ route('waka.dashboard') }}" class="text-decoration-none fw-semibold {{ !request('teacher_id') && !request('status') ? 'text-primary text-decoration-underline' : 'text-dark' }}" title="Tampilkan Semua Jadwal Guru Hari Ini">
             Hari Ini Mengajar ({{ $config->active_cycle ?? 'Putaran 1' }})
         </a>
+
         <span class="text-muted">|</span>
-        <a href="{{ route('waka.schedules.index') }}" class="text-secondary text-decoration-none">
+
+        <a href="{{ route('waka.dashboard', ['status' => 'overdue', 'teacher_id' => request('teacher_id')]) }}" class="text-decoration-none fw-semibold {{ request('status') == 'overdue' ? 'text-danger text-decoration-underline' : 'text-secondary' }}" title="Filter Guru yang Belum Mengisi Jurnal">
+            Belum Mengisi ({{ $overdueCount }})
+        </a>
+
+        <span class="text-muted">|</span>
+
+        <a href="{{ route('waka.dashboard', ['status' => 'teaching', 'teacher_id' => request('teacher_id')]) }}" class="text-decoration-none fw-semibold {{ request('status') == 'teaching' ? 'text-primary text-decoration-underline' : 'text-secondary' }}" title="Filter Guru yang Sedang Mengajar Saat Ini">
+            Sedang Mengajar ({{ $teachingCount }})
+        </a>
+
+        <span class="text-muted">|</span>
+
+        <a href="{{ route('waka.dashboard', ['status' => 'completed', 'teacher_id' => request('teacher_id')]) }}" class="text-decoration-none fw-semibold {{ request('status') == 'completed' ? 'text-success text-decoration-underline' : 'text-secondary' }}" title="Filter Guru yang Sudah Mengisi Jurnal">
+            Sudah Mengisi ({{ $completedCount }})
+        </a>
+
+        <span class="text-muted">|</span>
+
+        {{-- Filter Dropdown Guru Hari Ini (Teks Murni Inline Tanpa Card) --}}
+        <form method="GET" action="{{ route('waka.dashboard') }}" class="d-inline-flex align-items-center gap-2">
+            @if(request('status'))
+                <input type="hidden" name="status" value="{{ request('status') }}">
+            @endif
+            <label for="selectTeacherDashboard" class="text-secondary small mb-0 fw-semibold">Pilih Guru:</label>
+            <select name="teacher_id" id="selectTeacherDashboard" class="form-select form-select-sm d-inline-block w-auto py-0.5 px-2 border-secondary-subtle" style="font-size: 0.82rem; height: 30px;" onchange="this.form.submit()">
+                <option value="">Semua Guru Hari Ini ({{ count($todayTeachers) }})</option>
+                @foreach($todayTeachers as $tg)
+                    <option value="{{ $tg->id }}" {{ request('teacher_id') == $tg->id ? 'selected' : '' }}>
+                        {{ $tg->fullname }}
+                    </option>
+                @endforeach
+            </select>
+            @if(request('teacher_id') || request('status'))
+                <a href="{{ route('waka.dashboard') }}" class="text-danger small text-decoration-none ms-1" title="Hapus Filter">
+                    Reset
+                </a>
+            @endif
+        </form>
+
+        <span class="text-muted">|</span>
+        <a href="{{ route('waka.schedules.index') }}" class="text-secondary text-decoration-none" title="Buka Halaman Master Jadwal">
             Semua Jadwal
         </a>
     </div>
@@ -152,7 +195,7 @@
     {{-- ============================================================
     MONITORING AKTIVITAS MENGAJAR & JURNAL HARI INI
     ============================================================ --}}
-    @if(count($overdueJournals) > 0)
+    @if(count($overdueJournals) > 0 || request('teacher_id') || request('status'))
         <div class="card mb-4 shadow-sm border-0"
             style="border-radius: 12px; border: 1px solid #e2e8f0 !important; background-color: #ffffff; overflow: hidden;">
             {{-- Header Banner dengan Status Ringkasan --}}
@@ -213,7 +256,7 @@
                             </tr>
                         </thead>
                         <tbody>
-                            @foreach($overdueJournals as $overdue)
+                            @forelse($overdueJournals as $overdue)
                                 <tr>
                                     <td class="py-3 px-4 text-nowrap">
                                         <span class="fw-semibold text-dark"
@@ -244,7 +287,16 @@
                                         </span>
                                     </td>
                                 </tr>
-                            @endforeach
+                            @empty
+                                <tr>
+                                    <td colspan="6" class="text-center py-4 text-muted">
+                                        Tidak ada aktivitas mengajar yang sesuai dengan filter yang dipilih.
+                                        @if(request('teacher_id') || request('status'))
+                                            <a href="{{ route('waka.dashboard') }}" class="text-primary text-decoration-none ms-1 fw-semibold">Tampilkan Semua</a>
+                                        @endif
+                                    </td>
+                                </tr>
+                            @endforelse
                         </tbody>
                     </table>
                 </div>

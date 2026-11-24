@@ -16,7 +16,7 @@ use Illuminate\Support\Facades\Auth;
 
 class DashboardController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
         // 1. Ambil atau Buat Konfigurasi Sistem
         $config = SystemConfiguration::first();
@@ -53,7 +53,7 @@ class DashboardController extends Controller
         $timeThreshold = $now->copy()->subMinutes(30)->format('H:i:s');
 
         // 4. Jadwal Hari Ini Berdasarkan Siklus Aktif
-        $todaySchedules = Schedule::with(['teacher', 'schoolClass', 'room'])
+        $allTodaySchedules = Schedule::with(['teacher', 'schoolClass', 'room'])
             ->where('day_of_week', $todayIndo)
             ->where(function ($query) use ($config) {
                 $query->where('cycle_type', $config->active_cycle)
@@ -62,6 +62,17 @@ class DashboardController extends Controller
             ->orderBy('class_id', 'asc')
             ->orderBy('start_time', 'asc')
             ->get();
+
+        // Ambil daftar unik guru yang mengajar hari ini untuk filter dashboard
+        $todayTeacherIds = $allTodaySchedules->pluck('teacher_id')->unique()->filter()->values();
+        $todayTeachers = User::whereIn('id', $todayTeacherIds)->orderBy('fullname')->get();
+
+        // Terapkan filter guru jika dipilih
+        $selectedTeacherId = $request->input('teacher_id');
+        $todaySchedules = $allTodaySchedules;
+        if ($selectedTeacherId) {
+            $todaySchedules = $todaySchedules->where('teacher_id', $selectedTeacherId);
+        }
 
         // 5. Logika Monitoring Aktivitas Mengajar & Jurnal Hari Ini
         $monitoringJournals = [];
@@ -152,10 +163,18 @@ class DashboardController extends Controller
             return $a['sort_order'] <=> $b['sort_order'];
         });
 
-        $overdueJournals = $monitoringJournals;
+        $totalTodaySchedulesCount = count($monitoringJournals);
         $teachingCount = collect($monitoringJournals)->where('status_key', 'teaching')->count();
         $overdueCount = collect($monitoringJournals)->where('status_key', 'overdue')->count();
         $completedCount = collect($monitoringJournals)->where('status_key', 'completed')->count();
+
+        // Filter berdasarkan status jika parameter ada di URL (overdue, teaching, completed, upcoming)
+        $statusFilter = $request->input('status');
+        if ($statusFilter && in_array($statusFilter, ['overdue', 'teaching', 'completed', 'upcoming'])) {
+            $monitoringJournals = collect($monitoringJournals)->where('status_key', $statusFilter)->values()->all();
+        }
+
+        $overdueJournals = $monitoringJournals;
 
         // 6. Riwayat Siklus Blok (Cycle Histories)
         $cycleHistories = \App\Models\CycleHistory::with('user')
@@ -227,7 +246,11 @@ class DashboardController extends Controller
             'completedCount',
             'cycleHistories',
             'classStatusMatrix',
-            'classMatrix'
+            'classMatrix',
+            'todayTeachers',
+            'totalTodaySchedulesCount',
+            'selectedTeacherId',
+            'statusFilter'
         ));
     }
 
